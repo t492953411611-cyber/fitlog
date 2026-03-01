@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ポートフォリオ</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      line-height: 1.6;
+    }
+
+    /* ヘッダー */
+    header {
+      text-align: center;
+      padding: 80px 20px 60px;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    }
+
+    header .avatar {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      margin: 0 auto 24px;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #667eea, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+    }
+
+    .social-links a {
+      display: inline-block;
+      padding: 8px 20px;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .social-links a:hover {
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    /* セクション共通 */
+    section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+
+    section h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 32px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1f2937;
+      color: #f3f4f6;
+    }
+
+    /* スキル */
+    .skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .skill-tag {
+      padding: 6px 16px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    /* プロジェクト */
+    .projects {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .project-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .project-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .project-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #f3f4f6;
+    }
+
+    .project-card p {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 16px;
+    }
+
+    .project-card .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .project-card .tag {
+      padding: 2px 10px;
+      background: #1f2937;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: #667eea;
+    }
+
+    /* 経歴 */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 20px;
+    }
+
+    .timeline-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #667eea;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .timeline-content h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #f3f4f6;
+    }
+
+    .timeline-content .period {
+      font-size: 0.8rem;
+      color: #667eea;
+      margin-bottom: 4px;
+    }
+
+    .timeline-content p {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    /* お問い合わせ */
+    .contact-box {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+    }
+
+    .contact-box p {
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+
+    .contact-box a {
+      display: inline-block;
+      padding: 12px 32px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 8px;
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      transition: opacity 0.2s;
+    }
+
+    .contact-box a:hover {
+      opacity: 0.85;
+    }
+
+    /* フッター */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: #4b5563;
+      font-size: 0.8rem;
+      border-top: 1px solid #1f2937;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ヘッダー -->
+  <header>
+    <div class="avatar">👤</div>
+    <h1>あなたの名前</h1>
+    <p>フロントエンドエンジニア / デザイナー</p>
+    <div class="social-links">
+      <a href="#">GitHub</a>
+      <a href="#">Twitter</a>
+      <a href="#">LinkedIn</a>
+    </div>
+  </header>
+
+  <!-- スキル -->
+  <section>
+    <h2>スキル</h2>
+    <div class="skills">
+      <span class="skill-tag">HTML / CSS</span>
+      <span class="skill-tag">JavaScript</span>
+      <span class="skill-tag">TypeScript</span>
+      <span class="skill-tag">React</span>
+      <span class="skill-tag">Vue.js</span>
+      <span class="skill-tag">Node.js</span>
+      <span class="skill-tag">Python</span>
+      <span class="skill-tag">Git</span>
+      <span class="skill-tag">Figma</span>
+    </div>
+  </section>
+
+  <!-- プロジェクト -->
+  <section>
+    <h2>プロジェクト</h2>
+    <div class="projects">
+      <div class="project-card">
+        <h3>プロジェクト名 A</h3>
+        <p>プロジェクトの説明をここに入力します。何を作ったか、どんな課題を解決したかを簡潔に。</p>
+        <div class="tags">
+          <span class="tag">React</span>
+          <span class="tag">TypeScript</span>
+        </div>
+      </div>
+      <div class="project-card">
+        <h3>プロジェクト名 B</h3>
+        <p>プロジェクトの説明をここに入力します。何を作ったか、どんな課題を解決したかを簡潔に。</p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">FastAPI</span>
+        </div>
+      </div>
+      <div class="project-card">
+        <h3>プロジェクト名 C</h3>
+        <p>プロジェクトの説明をここに入力します。何を作ったか、どんな課題を解決したかを簡潔に。</p>
+        <div class="tags">
+          <span class="tag">Vue.js</span>
+          <span class="tag">Node.js</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 経歴 -->
+  <section>
+    <h2>経歴</h2>
+    <div class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="period">2023年 - 現在</div>
+          <h3>株式会社〇〇 / フロントエンドエンジニア</h3>
+          <p>Webアプリケーションの開発・設計を担当。ユーザー体験の向上に注力。</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="period">2021年 - 2023年</div>
+          <h3>株式会社△△ / Webデザイナー</h3>
+          <p>UIデザインおよびフロントエンド実装を担当。</p>
+        </div>
+      </div>
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="period">2017年 - 2021年</div>
+          <h3>〇〇大学 情報工学部</h3>
+          <p>コンピュータサイエンスを専攻。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- お問い合わせ -->
+  <section>
+    <h2>お問い合わせ</h2>
+    <div class="contact-box">
+      <p>お仕事のご依頼やご質問はお気軽にどうぞ。</p>
+      <a href="mailto:your@email.com">メールを送る</a>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 あなたの名前. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>
