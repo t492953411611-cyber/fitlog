@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>❤️ HeartRate Monitor</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:      #08090d;
+      --s1:      #0f1018;
+      --s2:      #16181f;
+      --border:  #22263a;
+      --text:    #e8eaf0;
+      --muted:   #5a6080;
+      --radius:  14px;
+
+      /* zone colors */
+      --z1: #64748b;
+      --z2: #22c55e;
+      --z3: #eab308;
+      --z4: #f97316;
+      --z5: #ef4444;
+
+      --accent: #ef4444;   /* current zone color, overridden by JS */
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── HEADER ── */
+    header {
+      width: 100%;
+      max-width: 600px;
+      padding: 18px 20px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #f87171, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--s1);
+      font-size: 0.78rem;
+      color: var(--muted);
+      transition: all 0.4s;
+    }
+    .status-badge.connected {
+      border-color: #22c55e55;
+      color: #22c55e;
+    }
+    .status-badge.demo {
+      border-color: #818cf855;
+      color: #818cf8;
+    }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.4s;
+    }
+    .status-badge.connected .status-dot { background: #22c55e; animation: blink 2s infinite; }
+    .status-badge.demo      .status-dot { background: #818cf8; animation: blink 2s infinite; }
+    @keyframes blink {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.3; }
+    }
+
+    /* ── MAIN BPM DISPLAY ── */
+    .main-card {
+      width: calc(100% - 32px);
+      max-width: 560px;
+      margin: 8px 16px;
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px 24px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow 0.6s;
+    }
+    /* Glow overlay */
+    .main-card::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 280px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+      opacity: 0.08;
+      transition: background 0.6s;
+      pointer-events: none;
+    }
+
+    /* Heart icon */
+    .heart-icon {
+      font-size: 2.8rem;
+      margin-bottom: 14px;
+      display: inline-block;
+      animation: heartbeat 0.8s ease-in-out infinite;
+      filter: drop-shadow(0 0 10px var(--accent));
+      transition: filter 0.6s;
+    }
+    @keyframes heartbeat {
+      0%,100% { transform: scale(1); }
+      15%      { transform: scale(1.28); }
+      30%      { transform: scale(1.04); }
+      45%      { transform: scale(1.18); }
+      60%      { transform: scale(1); }
+    }
+
+    /* BPM number */
+    .bpm-number {
+      font-size: clamp(5rem, 20vw, 8rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--accent);
+      /* text-shadow set dynamically by JS */
+      transition: color 0.5s, text-shadow 0.5s;
+      font-variant-numeric: tabular-nums;
+    }
+    .bpm-unit {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 0.15em;
+    }
+    .zone-badge {
+      margin-top: 14px;
+      padding: 5px 18px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--accent);
+      border: 1px solid;
+      transition: color 0.5s, background 0.5s, border-color 0.5s;
+    }
+
+    /* ── ZONE BAR ── */
+    .zone-bar-wrap {
+      width: calc(100% - 32px);
+      max-width: 560px;
+      margin: 4px 16px;
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px 14px;
+    }
+    .zone-bar-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 10px;
+    }
+    .zone-bar-track {
+      position: relative;
+      height: 12px;
+      border-radius: 6px;
+      display: flex;
+      overflow: visible;
+      gap: 2px;
+    }
+    .zone-seg {
+      border-radius: 4px;
+      height: 100%;
+      transition: opacity 0.3s;
+      position: relative;
+    }
+    /* Zone widths: 0-100(60), 100-130(30), 130-150(20), 150-170(20), 170-220(50) → total 180 */
+    .zone-seg.z1 { flex: 60; background: var(--z1); }
+    .zone-seg.z2 { flex: 30; background: var(--z2); }
+    .zone-seg.z3 { flex: 20; background: var(--z3); }
+    .zone-seg.z4 { flex: 20; background: var(--z4); }
+    .zone-seg.z5 { flex: 50; background: var(--z5); }
+    .zone-seg:not(.active) { opacity: 0.25; }
+
+    /* Needle */
+    .zone-needle {
+      position: absolute;
+      top: -6px;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 24px;
+      background: white;
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(255,255,255,0.6);
+      transition: left 0.5s ease;
+    }
+    .zone-scale {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-top: 7px;
+      padding: 0 2px;
+    }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      width: calc(100% - 32px);
+      max-width: 560px;
+      margin: 4px 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .stat-box {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 8px;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 3px;
+    }
+    .stat-lbl {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+
+    /* ── CHART ── */
+    .chart-card {
+      width: calc(100% - 32px);
+      max-width: 560px;
+      margin: 4px 16px;
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .chart-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .chart-title {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    .chart-range {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+    .chart-wrap {
+      position: relative;
+      height: 130px;
+    }
+
+    /* ── ZONE LEGEND ── */
+    .legend-card {
+      width: calc(100% - 32px);
+      max-width: 560px;
+      margin: 4px 16px;
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+    .legend-title {
+      font-size: 0.72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 10px;
+    }
+    .legend-list {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .legend-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      transition: all 0.3s;
+    }
+    .legend-row.active {
+      /* background / border-color set dynamically by JS */
+    }
+    .legend-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .legend-name { font-size: 0.85rem; font-weight: 600; flex: 1; }
+    .legend-range { font-size: 0.75rem; color: var(--muted); }
+    .legend-emoji { font-size: 1rem; }
+
+    /* ── BUTTONS ── */
+    .btn-row {
+      width: calc(100% - 32px);
+      max-width: 560px;
+      margin: 4px 16px 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .btn {
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: inherit;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-connect {
+      background: linear-gradient(135deg, #ef4444, #ec4899);
+      color: white;
+    }
+    .btn-connect:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-connect:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn-demo {
+      background: var(--s2);
+      border: 1px solid var(--border);
+      color: #818cf8;
+    }
+    .btn-demo:hover { background: #1e1f2e; }
+    .btn-stop {
+      background: var(--s2);
+      border: 1px solid #ef444455;
+      color: #ef4444;
+    }
+
+    /* ── NOTICE ── */
+    .notice {
+      width: calc(100% - 32px);
+      max-width: 560px;
+      margin: 4px 16px 20px;
+      background: #1a1500;
+      border: 1px solid #f59e0b44;
+      border-radius: var(--radius);
+      padding: 12px 16px;
+    }
+    .notice p {
+      font-size: 0.76rem;
+      color: #92794a;
+      line-height: 1.55;
+    }
+    .notice p + p { margin-top: 6px; }
+    .notice strong { color: #f59e0b; }
+
+    /* ── IDLE STATE ── */
+    .idle-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+    }
+    .idle-overlay .ei { font-size: 2.5rem; }
+    .idle-overlay p  { font-size: 0.82rem; }
+
+    /* ── iOS safe area (ホームバー分のスペース) ── */
+    body {
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+
+    @media (max-width: 560px) {
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .stat-val  { font-size: 1.7rem; }
+      .stat-lbl  { font-size: 0.74rem; }
+      .main-card { padding: 22px 16px 20px; }
+      .chart-wrap { height: 110px; }
+      .legend-range { font-size: 0.7rem; color: var(--muted); }
+      .legend-name  { font-size: 0.82rem; }
+    }
+
+    @media (max-width: 360px) {
+      .legend-range { display: none; }
+      header h1 { font-size: 0.95rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <h1>❤️ HeartRate Monitor</h1>
+  <div class="status-badge" id="statusBadge">
+    <div class="status-dot"></div>
+    <span id="statusText">未接続</span>
+  </div>
+</header>
+
+<!-- MAIN BPM -->
+<div class="main-card" id="mainCard">
+  <div class="heart-icon" id="heartIcon">❤️</div>
+  <div id="bpmDisplay">
+    <div class="idle-overlay">
+      <div class="ei">💓</div>
+      <p>デバイスを接続してください</p>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE BAR -->
+<div class="zone-bar-wrap">
+  <div class="zone-bar-label">心拍ゾーン</div>
+  <div class="zone-bar-track" id="zoneTrack">
+    <div class="zone-seg z1" id="seg1"></div>
+    <div class="zone-seg z2" id="seg2"></div>
+    <div class="zone-seg z3" id="seg3"></div>
+    <div class="zone-seg z4" id="seg4"></div>
+    <div class="zone-seg z5" id="seg5"></div>
+    <div class="zone-needle" id="zoneNeedle" style="left:0%;display:none"></div>
+  </div>
+  <div class="zone-scale">
+    <span>40</span><span>100</span><span>130</span><span>150</span><span>170</span><span>220+</span>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-row">
+  <div class="stat-box">
+    <div class="stat-val" id="statMin" style="color:#22c55e">—</div>
+    <div class="stat-lbl">最小 BPM</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-val" id="statMax" style="color:#ef4444">—</div>
+    <div class="stat-lbl">最大 BPM</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-val" id="statAvg" style="color:#818cf8">—</div>
+    <div class="stat-lbl">平均 BPM</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-val" id="statTime" style="color:#f59e0b">—</div>
+    <div class="stat-lbl">計測時間</div>
+  </div>
+</div>
+
+<!-- CHART -->
+<div class="chart-card">
+  <div class="chart-head">
+    <div class="chart-title">リアルタイム心拍グラフ</div>
+    <div class="chart-range">直近 60 秒</div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="hrChart"></canvas>
+  </div>
+</div>
+
+<!-- ZONE LEGEND -->
+<div class="legend-card">
+  <div class="legend-title">ゾーン一覧</div>
+  <div class="legend-list" id="legendList"></div>
+</div>
+
+<!-- BUTTONS -->
+<div class="btn-row" id="btnRow">
+  <button class="btn btn-connect" id="btnConnect" onclick="connectBluetooth()">
+    📡 BLEデバイス接続
+  </button>
+  <button class="btn btn-demo" id="btnDemo" onclick="startDemo()">
+    ▶ デモモード
+  </button>
+</div>
+
+<!-- NOTICE -->
+<div class="notice">
+  <p>
+    <strong>⚠️ Apple Watch について：</strong>
+    Apple Watch はウェブブラウザへの直接 BLE 心拍送信をサポートしていません（Apple の制限）。<br>
+    Apple Watch を使うには watchOS ネイティブアプリが必要です。
+  </p>
+  <p>
+    <strong>✅ 対応デバイス：</strong>
+    Polar H10 / H9、Garmin チェストストラップ、その他 BLE 心拍モニター。<br>
+    <strong>対応ブラウザ：</strong>Chrome / Edge（iOS Safari は非対応）
+  </p>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// ZONES
+// ══════════════════════════════════════════
+const ZONES = [
+  { id:1, name:'ウォームアップ',   emoji:'🚶', range:[0,   100], color:'#64748b', label:'Zone 1 · 40〜99 BPM' },
+  { id:2, name:'脂肪燃焼',         emoji:'🏃', range:[100, 130], color:'#22c55e', label:'Zone 2 · 100〜129 BPM' },
+  { id:3, name:'有酸素トレーニング',emoji:'🔥', range:[130, 150], color:'#eab308', label:'Zone 3 · 130〜149 BPM' },
+  { id:4, name:'無酸素トレーニング',emoji:'⚡', range:[150, 170], color:'#f97316', label:'Zone 4 · 150〜169 BPM' },
+  { id:5, name:'最大運動強度',      emoji:'💥', range:[170, 999], color:'#ef4444', label:'Zone 5 · 170+ BPM' },
+];
+const BPM_MIN = 40, BPM_MAX = 220;
+
+function getZone(bpm) {
+  return ZONES.find(z => bpm >= z.range[0] && bpm < z.range[1]) || ZONES[4];
+}
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+const state = {
+  active:   false,
+  demo:     false,
+  bpm:      0,
+  history:  [],       // [{t, bpm}]
+  session:  null,
+  min: 999, max: 0, sum: 0, count: 0,
+};
+
+let bleDevice    = null;
+let demoTimer    = null;
+let timerTick    = null;
+let chartInst    = null;
+let demoTarget   = 72;
+let demoBPM      = 72;
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  buildLegend();
+  initChart();
+});
+
+// ══════════════════════════════════════════
+// LEGEND
+// ══════════════════════════════════════════
+function buildLegend() {
+  document.getElementById('legendList').innerHTML = ZONES.map(z => `
+    <div class="legend-row" id="leg-${z.id}" style="--accent:${z.color}">
+      <div class="legend-dot" style="background:${z.color}"></div>
+      <div class="legend-emoji">${z.emoji}</div>
+      <div class="legend-name">${z.name}</div>
+      <div class="legend-range">${z.label}</div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// CHART (Chart.js)
+// ══════════════════════════════════════════
+function initChart() {
+  const ctx = document.getElementById('hrChart').getContext('2d');
+  Chart.defaults.color = '#5a6080';
+  Chart.defaults.borderColor = '#22263a';
+
+  chartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'BPM',
+        data: [],
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239,68,68,0.08)',
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => ctx[0].label + '秒前',
+            label: ctx => ctx.parsed.y + ' BPM',
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#16181f' },
+          ticks: { maxTicksLimit: 6, font: { size: 10 } },
+          reverse: true,
+        },
+        y: {
+          grid: { color: '#16181f' },
+          min: 40, max: 200,
+          ticks: {
+            font: { size: 10 },
+            callback: v => v + ' bpm',
+            stepSize: 40,
+          }
+        }
+      }
+    }
+  });
+}
+
+function pushToChart(bpm) {
+  const now = Date.now();
+  state.history.push({ t: now, bpm });
+
+  // keep 60 seconds
+  const cutoff = now - 61000;
+  state.history = state.history.filter(h => h.t >= cutoff);
+
+  const labels = state.history.map(h => Math.round((now - h.t) / 1000)).reverse();
+  const data   = state.history.map(h => h.bpm).reverse();
+
+  chartInst.data.labels = labels;
+  chartInst.data.datasets[0].data = data;
+  chartInst.data.datasets[0].borderColor = getZone(bpm).color;
+  chartInst.data.datasets[0].backgroundColor = getZone(bpm).color + '18';
+  chartInst.update('none');
+}
+
+// ══════════════════════════════════════════
+// UPDATE UI
+// ══════════════════════════════════════════
+function updateUI(bpm) {
+  const zone = getZone(bpm);
+
+  // --- CSS accent color ---
+  document.documentElement.style.setProperty('--accent', zone.color);
+
+  // --- heart animation speed ---
+  const dur = (60 / bpm * 1000).toFixed(0) + 'ms';
+  document.getElementById('heartIcon').style.animationDuration = dur;
+
+  // --- BPM number ---
+  // hex alpha: 26 = ~15%,  55 = ~33% (replaces color-mix, works on all browsers)
+  document.getElementById('bpmDisplay').innerHTML = `
+    <div class="bpm-number">${bpm}</div>
+    <div class="bpm-unit">BPM</div>
+    <div class="zone-badge" style="background:${zone.color}26;border-color:${zone.color}66;">
+      ${zone.emoji} Zone ${zone.id} · ${zone.name}
+    </div>
+  `;
+
+  // text-shadow glow (hex alpha 66 = ~40%, replaces color-mix)
+  const bpmEl = document.querySelector('.bpm-number');
+  if (bpmEl) bpmEl.style.textShadow = `0 0 40px ${zone.color}66`;
+
+  // --- Zone bar needle ---
+  const pct = Math.max(0, Math.min(100,
+    (bpm - BPM_MIN) / (BPM_MAX - BPM_MIN) * 100));
+  const needle = document.getElementById('zoneNeedle');
+  needle.style.display = 'block';
+  needle.style.left = pct + '%';
+
+  // --- Zone segments highlight ---
+  ZONES.forEach((z, i) => {
+    const seg = document.getElementById('seg' + z.id);
+    seg.classList.toggle('active', z.id === zone.id);
+  });
+
+  // --- Legend highlight ---
+  // inline style instead of color-mix (wider browser support)
+  ZONES.forEach(z => {
+    const row = document.getElementById('leg-' + z.id);
+    const active = z.id === zone.id;
+    row.classList.toggle('active', active);
+    row.style.background   = active ? z.color + '1a' : '';
+    row.style.borderColor  = active ? z.color + '55' : 'transparent';
+  });
+
+  // --- Stats ---
+  state.min = Math.min(state.min, bpm);
+  state.max = Math.max(state.max, bpm);
+  state.sum += bpm;
+  state.count++;
+
+  document.getElementById('statMin').textContent =
+    state.min === 999 ? '—' : state.min;
+  document.getElementById('statMax').textContent =
+    state.max === 0   ? '—' : state.max;
+  document.getElementById('statAvg').textContent =
+    state.count > 0 ? Math.round(state.sum / state.count) : '—';
+
+  // --- Chart ---
+  pushToChart(bpm);
+}
+
+// ══════════════════════════════════════════
+// SESSION TIMER
+// ══════════════════════════════════════════
+function startSessionTimer() {
+  const start = Date.now();
+  if (timerTick) clearInterval(timerTick);
+  timerTick = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - start) / 1000);
+    const h = String(Math.floor(elapsed / 3600)).padStart(2,'0');
+    const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2,'0');
+    const s = String(elapsed % 60).padStart(2,'0');
+    document.getElementById('statTime').textContent = h > '00'
+      ? `${h}:${m}:${s}` : `${m}:${s}`;
+  }, 1000);
+}
+
+// ══════════════════════════════════════════
+// STATUS BADGE
+// ══════════════════════════════════════════
+function setStatus(mode, label) {
+  const badge = document.getElementById('statusBadge');
+  badge.className = 'status-badge ' + (mode || '');
+  document.getElementById('statusText').textContent = label;
+}
+
+// ══════════════════════════════════════════
+// WEB BLUETOOTH
+// ══════════════════════════════════════════
+async function connectBluetooth() {
+  if (!navigator.bluetooth) {
+    alert(
+      '⚠️ このブラウザは Web Bluetooth に対応していません。\n\n' +
+      'Google Chrome または Microsoft Edge をお使いください。\n' +
+      '（iOS Safari は対応外です）'
+    );
+    return;
+  }
+
+  try {
+    document.getElementById('btnConnect').disabled = true;
+    document.getElementById('btnConnect').textContent = '接続中...';
+
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ services: ['heart_rate'] }],
+    });
+
+    bleDevice.addEventListener('gattserverdisconnected', onBLEDisconnect);
+
+    const server  = await bleDevice.gatt.connect();
+    const service = await server.getPrimaryService('heart_rate');
+    const char    = await service.getCharacteristic('heart_rate_measurement');
+
+    await char.startNotifications();
+    char.addEventListener('characteristicvaluechanged', onBLEData);
+
+    resetSession();
+    startSessionTimer();
+    setStatus('connected', bleDevice.name || 'BLE デバイス');
+    showStopButton();
+
+  } catch (err) {
+    document.getElementById('btnConnect').disabled = false;
+    document.getElementById('btnConnect').textContent = '📡 BLEデバイス接続';
+    if (err.name !== 'NotFoundError') {
+      alert('接続エラー: ' + err.message);
+    }
+  }
+}
+
+function onBLEData(event) {
+  const v     = event.target.value;
+  const flags = v.getUint8(0);
+  const bpm   = (flags & 0x01) ? v.getUint16(1, true) : v.getUint8(1);
+  updateUI(bpm);
+}
+
+function onBLEDisconnect() {
+  setStatus('', '切断されました');
+  resetButtons();
+  if (timerTick) clearInterval(timerTick);
+}
+
+// ══════════════════════════════════════════
+// DEMO MODE
+// ══════════════════════════════════════════
+const DEMO_PHASES = [
+  { target:72,  duration:8000  },   // 安静
+  { target:120, duration:10000 },   // ウォームアップ
+  { target:155, duration:15000 },   // 有酸素
+  { target:175, duration:10000 },   // 高強度
+  { target:140, duration:8000  },   // 回復
+  { target:72,  duration:8000  },   // クールダウン
+];
+let demoPhaseIdx = 0;
+let demoPhaseStart = 0;
+
+function startDemo() {
+  resetSession();
+  resetButtons();
+  state.demo = true;
+  demoPhaseIdx = 0;
+  demoPhaseStart = Date.now();
+  demoBPM = 72;
+
+  setStatus('demo', 'デモモード実行中');
+  startSessionTimer();
+
+  // Replace buttons
+  document.getElementById('btnRow').innerHTML = `
+    <button class="btn btn-demo" style="opacity:.4;cursor:not-allowed" disabled>▶ デモモード</button>
+    <button class="btn btn-stop" onclick="stopDemo()">⏹ 停止</button>
+  `;
+
+  demoTimer = setInterval(demoTick, 1000);
+}
+
+function demoTick() {
+  const phase = DEMO_PHASES[demoPhaseIdx];
+  demoTarget = phase.target;
+
+  // smooth ramp toward target + noise
+  const noise = (Math.random() - 0.5) * 5;
+  demoBPM += (demoTarget - demoBPM) * 0.12 + noise;
+  demoBPM = Math.max(50, Math.min(195, demoBPM));
+
+  updateUI(Math.round(demoBPM));
+
+  // advance phase
+  if (Date.now() - demoPhaseStart > phase.duration) {
+    demoPhaseIdx = (demoPhaseIdx + 1) % DEMO_PHASES.length;
+    demoPhaseStart = Date.now();
+  }
+}
+
+function stopDemo() {
+  clearInterval(demoTimer);
+  clearInterval(timerTick);
+  state.demo = false;
+  setStatus('', '未接続');
+  resetButtons();
+}
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function resetSession() {
+  state.min = 999; state.max = 0;
+  state.sum = 0;   state.count = 0;
+  state.history = [];
+  document.getElementById('statMin').textContent = '—';
+  document.getElementById('statMax').textContent = '—';
+  document.getElementById('statAvg').textContent = '—';
+  document.getElementById('statTime').textContent = '—';
+  chartInst.data.labels = [];
+  chartInst.data.datasets[0].data = [];
+  chartInst.update();
+}
+
+function resetButtons() {
+  document.getElementById('btnRow').innerHTML = `
+    <button class="btn btn-connect" id="btnConnect" onclick="connectBluetooth()">
+      📡 BLEデバイス接続
+    </button>
+    <button class="btn btn-demo" id="btnDemo" onclick="startDemo()">
+      ▶ デモモード
+    </button>
+  `;
+}
+
+function showStopButton() {
+  document.getElementById('btnRow').innerHTML = `
+    <button class="btn btn-connect" style="opacity:.35;cursor:not-allowed" disabled>
+      ✅ 接続済み
+    </button>
+    <button class="btn btn-stop" onclick="disconnectBLE()">⏹ 切断</button>
+  `;
+}
+
+function disconnectBLE() {
+  if (bleDevice && bleDevice.gatt.connected) {
+    bleDevice.gatt.disconnect();
+  }
+  clearInterval(timerTick);
+  setStatus('', '未接続');
+  resetButtons();
+}
+</script>
+</body>
+</html>
