@@ -7,15 +7,15 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg:      #090d09;
-      --s1:      #0f1510;
-      --s2:      #161f17;
-      --border:  #1f2e20;
-      --text:    #e4ede4;
-      --muted:   #5a7060;
-      --green:   #22c55e;
-      --red:     #ef4444;
-      --gold:    #f59e0b;
+      --bg:      #f0f6ee;
+      --s1:      #ffffff;
+      --s2:      #f5faf4;
+      --border:  #c4d9c4;
+      --text:    #1a2e1a;
+      --muted:   #6b8b6b;
+      --green:   #16a34a;
+      --red:     #dc2626;
+      --gold:    #d97706;
       --radius:  13px;
     }
 
@@ -86,7 +86,7 @@
       content: '⛳';
       position: absolute;
       font-size: 6rem;
-      opacity: 0.04;
+      opacity: 0.07;
       right: -10px;
       top: -10px;
     }
@@ -246,7 +246,7 @@
       padding: 11px 13px;
       transition: border-color 0.2s;
     }
-    .rec-item:hover { border-color: #2d4030; }
+    .rec-item:hover { border-color: #a0c0a0; }
     .rec-item.win-row  { border-left: 3px solid var(--green); }
     .rec-item.loss-row { border-left: 3px solid var(--red); }
 
@@ -290,15 +290,15 @@
       color: var(--muted);
       white-space: nowrap;
     }
-    .rec-cumul.win  { color: #4ade8088; }
-    .rec-cumul.loss { color: #f8717188; }
+    .rec-cumul.win  { color: #15803d; }
+    .rec-cumul.loss { color: #dc2626; }
 
     .btn-del {
       padding: 4px 9px;
       border-radius: 6px;
-      border: 1px solid #ef444433;
+      border: 1px solid #dc262655;
       background: none;
-      color: #ef444488;
+      color: #dc262699;
       cursor: pointer;
       font-size: 0.7rem;
       font-family: inherit;
@@ -408,7 +408,7 @@
 
         <div class="fg">
           <label>金額（円）</label>
-          <input type="number" id="fAmount" min="1" step="100" placeholder="5000" required>
+          <input type="number" id="fAmount" min="1" step="1" placeholder="3000" required>
         </div>
 
         <div class="fg">
@@ -645,8 +645,8 @@ function renderChart(records) {
 
   if (chartInst) chartInst.destroy();
 
-  Chart.defaults.color = '#5a7060';
-  Chart.defaults.borderColor = '#1f2e20';
+  Chart.defaults.color = '#6b8b6b';
+  Chart.defaults.borderColor = '#c4d9c4';
 
   chartInst = new Chart(canvas, {
     type: 'line',
@@ -695,11 +695,11 @@ function renderChart(records) {
       },
       scales: {
         x: {
-          grid: { color: '#1a2a1b' },
+          grid: { color: '#ddeedd' },
           ticks: { maxTicksLimit: 8, font: { size: 10 } }
         },
         y: {
-          grid: { color: '#1a2a1b' },
+          grid: { color: '#ddeedd' },
           ticks: {
             font: { size: 10 },
             callback: v => (v >= 0 ? '+¥' : '-¥') + Math.abs(v).toLocaleString(),
