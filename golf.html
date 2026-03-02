@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⛳ ゴルフ賭け記録</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg:      #090d09;
+      --s1:      #0f1510;
+      --s2:      #161f17;
+      --border:  #1f2e20;
+      --text:    #e4ede4;
+      --muted:   #5a7060;
+      --green:   #22c55e;
+      --red:     #ef4444;
+      --gold:    #f59e0b;
+      --radius:  13px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+
+    /* ── HEADER ── */
+    .app-header {
+      background: var(--s1);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .app-header h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #4ade80, #22c55e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+    }
+    .header-total {
+      text-align: right;
+    }
+    .header-total .lbl {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+    .header-total .val {
+      font-size: 1.1rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── MAIN WRAP ── */
+    .wrap {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 14px 14px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── BALANCE HERO ── */
+    .hero {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px 20px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '⛳';
+      position: absolute;
+      font-size: 6rem;
+      opacity: 0.04;
+      right: -10px;
+      top: -10px;
+    }
+    .hero .lbl {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 8px;
+    }
+    .hero .amount {
+      font-size: clamp(2.8rem, 12vw, 4.5rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .hero .amount.win  { color: var(--green); }
+    .hero .amount.loss { color: var(--red); }
+    .hero .amount.zero { color: var(--muted); }
+    .hero .sub {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    /* ── STATS ROW ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .stat-box {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 11px 6px;
+      text-align: center;
+    }
+    .stat-box .v {
+      font-size: 1.3rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 3px;
+    }
+    .stat-box .l {
+      font-size: 0.67rem;
+      color: var(--muted);
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 14px;
+    }
+
+    /* ── FORM ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .fg { display: flex; flex-direction: column; gap: 5px; }
+    .fg.full { grid-column: 1 / -1; }
+    label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      color: var(--text);
+      font-size: 0.9rem;
+      width: 100%;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--green); }
+    input[list] { cursor: text; }
+
+    /* 勝ち/負けトグル */
+    .toggle-wrap {
+      display: flex;
+      gap: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .toggle-btn {
+      flex: 1;
+      padding: 9px 6px;
+      border: none;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .toggle-btn.win.active  { background: rgba(34,197,94,.2);  color: var(--green); }
+    .toggle-btn.loss.active { background: rgba(239,68,68,.2);  color: var(--red); }
+    .toggle-btn:not(.active):hover { background: var(--s2); }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      margin-top: 4px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.92rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white;
+      font-family: inherit;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .btn-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ── CHART ── */
+    .chart-wrap {
+      position: relative;
+      height: 160px;
+    }
+
+    /* ── HISTORY TABLE ── */
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .rec-count {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .rec-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .rec-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 13px;
+      transition: border-color 0.2s;
+    }
+    .rec-item:hover { border-color: #2d4030; }
+    .rec-item.win-row  { border-left: 3px solid var(--green); }
+    .rec-item.loss-row { border-left: 3px solid var(--red); }
+
+    .rec-date {
+      font-size: 0.72rem;
+      color: var(--muted);
+      white-space: nowrap;
+      min-width: 58px;
+    }
+    .rec-course {
+      flex: 1;
+      font-size: 0.88rem;
+      font-weight: 600;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .rec-note {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 1px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .rec-amounts {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .rec-amount {
+      font-size: 0.95rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .rec-amount.win  { color: var(--green); }
+    .rec-amount.loss { color: var(--red); }
+    .rec-cumul {
+      font-size: 0.7rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .rec-cumul.win  { color: #4ade8088; }
+    .rec-cumul.loss { color: #f8717188; }
+
+    .btn-del {
+      padding: 4px 9px;
+      border-radius: 6px;
+      border: 1px solid #ef444433;
+      background: none;
+      color: #ef444488;
+      cursor: pointer;
+      font-size: 0.7rem;
+      font-family: inherit;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-del:hover { background: var(--red); color: white; border-color: var(--red); }
+
+    .empty {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--muted);
+    }
+    .empty .ei { font-size: 2.2rem; margin-bottom: 8px; }
+    .empty p { font-size: 0.82rem; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--s2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 22px;
+      border-radius: 24px;
+      font-size: 0.85rem;
+      transition: transform 0.3s;
+      z-index: 999;
+      white-space: nowrap;
+      box-shadow: 0 4px 24px rgba(0,0,0,.5);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 480px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .form-grid  { grid-template-columns: 1fr; }
+      .form-grid .fg.full { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <h1>⛳ ゴルフ賭け記録</h1>
+  <div class="header-total">
+    <div class="lbl">累計</div>
+    <div class="val" id="hdrTotal">¥ 0</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- BALANCE HERO -->
+  <div class="hero">
+    <div class="lbl">現在の累計収支</div>
+    <div class="amount zero" id="heroAmount">¥ 0</div>
+    <div class="sub" id="heroSub">まだ記録がありません</div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="v" id="sTotal">0</div>
+      <div class="l">ゲーム数</div>
+    </div>
+    <div class="stat-box">
+      <div class="v" style="color:var(--green)" id="sWins">0</div>
+      <div class="l">勝ち</div>
+    </div>
+    <div class="stat-box">
+      <div class="v" style="color:var(--red)" id="sLoss">0</div>
+      <div class="l">負け</div>
+    </div>
+    <div class="stat-box">
+      <div class="v" style="color:var(--gold)" id="sRate">—</div>
+      <div class="l">勝率</div>
+    </div>
+  </div>
+
+  <!-- ADD FORM -->
+  <div class="card">
+    <div class="card-title">📝 新しい記録を追加</div>
+    <form id="addForm" onsubmit="addRecord(event)">
+      <datalist id="courseList"></datalist>
+      <div class="form-grid">
+
+        <div class="fg">
+          <label>日付</label>
+          <input type="date" id="fDate" required>
+        </div>
+
+        <div class="fg">
+          <label>勝ち / 負け</label>
+          <div class="toggle-wrap">
+            <button type="button" class="toggle-btn win active" id="btnWin"  onclick="setWL('win')">🏆 勝ち</button>
+            <button type="button" class="toggle-btn loss"       id="btnLoss" onclick="setWL('loss')">💸 負け</button>
+          </div>
+        </div>
+
+        <div class="fg full">
+          <label>ゴルフ場名</label>
+          <input type="text" id="fCourse" list="courseList" placeholder="例：霞ヶ関カンツリー倶楽部" required autocomplete="off">
+        </div>
+
+        <div class="fg">
+          <label>金額（円）</label>
+          <input type="number" id="fAmount" min="1" step="100" placeholder="5000" required>
+        </div>
+
+        <div class="fg">
+          <label>メモ（任意）</label>
+          <input type="text" id="fNote" placeholder="天気・同伴者など">
+        </div>
+
+      </div>
+      <button type="submit" class="btn-submit">記録する</button>
+    </form>
+  </div>
+
+  <!-- CHART -->
+  <div class="card" id="chartCard" style="display:none">
+    <div class="card-title">📈 累計収支の推移</div>
+    <div class="chart-wrap">
+      <canvas id="balanceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="card">
+    <div class="history-header">
+      <div class="card-title" style="margin:0">📋 履歴</div>
+      <div class="rec-count" id="recCount"></div>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
+</div><!-- /wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════
+function load() {
+  return JSON.parse(localStorage.getItem('golfBet') || '{"records":[]}');
+}
+function save(d) {
+  localStorage.setItem('golfBet', JSON.stringify(d));
+}
+
+// ══════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════
+let wlMode = 'win'; // 'win' | 'loss'
+
+function setWL(mode) {
+  wlMode = mode;
+  document.getElementById('btnWin').classList.toggle('active', mode === 'win');
+  document.getElementById('btnLoss').classList.toggle('active', mode === 'loss');
+}
+
+function today() {
+  return new Date().toLocaleDateString('sv');
+}
+
+function fmtDate(s) {
+  const d = new Date(s + 'T00:00:00');
+  return `${d.getMonth()+1}/${d.getDate()}`;
+}
+function fmtDateFull(s) {
+  const d = new Date(s + 'T00:00:00');
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function fmtYen(n) {
+  const abs = Math.abs(n).toLocaleString();
+  return n >= 0 ? `+¥${abs}` : `-¥${abs}`;
+}
+function fmtYenAbs(n) {
+  return `¥${Math.abs(n).toLocaleString()}`;
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+// ══════════════════════════════════════════
+// ADD RECORD
+// ══════════════════════════════════════════
+function addRecord(e) {
+  e.preventDefault();
+  const rawAmt = parseInt(document.getElementById('fAmount').value);
+  if (!rawAmt || rawAmt <= 0) return;
+
+  const amount = wlMode === 'win' ? rawAmt : -rawAmt;
+  const d = load();
+  d.records.push({
+    id:     Date.now(),
+    date:   document.getElementById('fDate').value,
+    course: document.getElementById('fCourse').value.trim(),
+    amount,
+    note:   document.getElementById('fNote').value.trim(),
+  });
+  // sort by date ascending
+  d.records.sort((a, b) => a.date.localeCompare(b.date));
+  save(d);
+
+  // reset form
+  document.getElementById('fAmount').value = '';
+  document.getElementById('fNote').value   = '';
+  // keep date, course, wl mode for convenience
+
+  render();
+  toast(amount >= 0 ? '🏆 勝ち記録を追加しました！' : '💸 負け記録を追加しました');
+}
+
+// ══════════════════════════════════════════
+// DELETE
+// ══════════════════════════════════════════
+function deleteRecord(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  const d = load();
+  d.records = d.records.filter(r => r.id !== id);
+  save(d);
+  render();
+  toast('削除しました');
+}
+
+// ══════════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════════
+let chartInst = null;
+
+function render() {
+  const d = load();
+  const recs = d.records; // sorted by date asc
+
+  // ── cumulative array ──
+  let cumul = 0;
+  const withCumul = recs.map(r => {
+    cumul += r.amount;
+    return { ...r, cumul };
+  });
+
+  const total = cumul;
+  const wins  = recs.filter(r => r.amount > 0).length;
+  const loss  = recs.filter(r => r.amount < 0).length;
+  const rate  = recs.length ? Math.round(wins / recs.length * 100) : null;
+
+  // ── hero ──
+  const heroEl = document.getElementById('heroAmount');
+  heroEl.textContent = total === 0 ? '¥ 0'
+    : (total > 0 ? '+¥' : '-¥') + Math.abs(total).toLocaleString();
+  heroEl.className = 'amount ' + (total > 0 ? 'win' : total < 0 ? 'loss' : 'zero');
+
+  const lastDate = recs.length ? fmtDateFull(recs[recs.length - 1].date) : null;
+  document.getElementById('heroSub').textContent = recs.length
+    ? `${recs.length}ゲーム記録済み　最終: ${lastDate}`
+    : 'まだ記録がありません';
+
+  // ── header total ──
+  const hdr = document.getElementById('hdrTotal');
+  hdr.textContent = total === 0 ? '¥ 0'
+    : (total > 0 ? '+¥' : '-¥') + Math.abs(total).toLocaleString();
+  hdr.style.color = total > 0 ? 'var(--green)' : total < 0 ? 'var(--red)' : 'var(--muted)';
+
+  // ── stats ──
+  document.getElementById('sTotal').textContent = recs.length;
+  document.getElementById('sWins').textContent  = wins;
+  document.getElementById('sLoss').textContent  = loss;
+  document.getElementById('sRate').textContent  = rate !== null ? rate + '%' : '—';
+
+  // ── datalist (past courses) ──
+  const courses = [...new Set(recs.map(r => r.course))];
+  document.getElementById('courseList').innerHTML =
+    courses.map(c => `<option value="${c}">`).join('');
+
+  // ── chart ──
+  const chartCard = document.getElementById('chartCard');
+  if (recs.length >= 2) {
+    chartCard.style.display = 'block';
+    renderChart(withCumul);
+  } else {
+    chartCard.style.display = 'none';
+  }
+
+  // ── record count ──
+  document.getElementById('recCount').textContent =
+    recs.length ? `全 ${recs.length} 件` : '';
+
+  // ── history list (newest first) ──
+  const el = document.getElementById('historyList');
+  if (!recs.length) {
+    el.innerHTML = `<div class="empty"><div class="ei">⛳</div><p>記録がありません<br>上のフォームから追加してください</p></div>`;
+    return;
+  }
+
+  const reversed = [...withCumul].reverse();
+  el.innerHTML = '<div class="rec-list">' + reversed.map(r => `
+    <div class="rec-item ${r.amount >= 0 ? 'win-row' : 'loss-row'}">
+      <div style="flex-shrink:0">
+        <div class="rec-date">${fmtDateFull(r.date)}</div>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div class="rec-course">${escHtml(r.course)}</div>
+        ${r.note ? `<div class="rec-note">${escHtml(r.note)}</div>` : ''}
+      </div>
+      <div class="rec-amounts">
+        <div class="rec-amount ${r.amount >= 0 ? 'win' : 'loss'}">
+          ${r.amount >= 0 ? '+' : ''}¥${Math.abs(r.amount).toLocaleString()}
+        </div>
+        <div class="rec-cumul ${r.cumul >= 0 ? 'win' : 'loss'}">
+          累計 ${r.cumul >= 0 ? '+' : ''}¥${Math.abs(r.cumul).toLocaleString()}
+        </div>
+      </div>
+      <button class="btn-del" onclick="deleteRecord(${r.id})">削除</button>
+    </div>
+  `).join('') + '</div>';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════════
+// CHART
+// ══════════════════════════════════════════
+function renderChart(records) {
+  const canvas = document.getElementById('balanceChart');
+  const labels = records.map(r => fmtDate(r.date));
+  const data   = records.map(r => r.cumul);
+  const lastVal = data[data.length - 1] || 0;
+  const lineColor = lastVal >= 0 ? '#22c55e' : '#ef4444';
+
+  // zero baseline dataset
+  const zeroLine = data.map(() => 0);
+
+  if (chartInst) chartInst.destroy();
+
+  Chart.defaults.color = '#5a7060';
+  Chart.defaults.borderColor = '#1f2e20';
+
+  chartInst = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: '累計収支',
+          data,
+          borderColor: lineColor,
+          backgroundColor: lineColor + '18',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: data.length <= 20 ? 4 : 2,
+          pointBackgroundColor: lineColor,
+          pointHoverRadius: 6,
+        },
+        {
+          label: '±0',
+          data: zeroLine,
+          borderColor: '#2d4030',
+          borderWidth: 1,
+          borderDash: [4, 4],
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: ctx => labels[ctx[0].dataIndex],
+            label: ctx => {
+              if (ctx.datasetIndex === 1) return null;
+              const v = ctx.parsed.y;
+              return `累計: ${v >= 0 ? '+' : ''}¥${Math.abs(v).toLocaleString()}`;
+            }
+          },
+          filter: item => item.datasetIndex === 0,
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: '#1a2a1b' },
+          ticks: { maxTicksLimit: 8, font: { size: 10 } }
+        },
+        y: {
+          grid: { color: '#1a2a1b' },
+          ticks: {
+            font: { size: 10 },
+            callback: v => (v >= 0 ? '+¥' : '-¥') + Math.abs(v).toLocaleString(),
+          }
+        }
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('fDate').value = today();
+  render();
+});
+</script>
+</body>
+</html>
