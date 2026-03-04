@@ -373,7 +373,7 @@
 
 <!-- HEADER -->
 <header class="app-header">
-  <h1>⛳ バーディーバンク</h1>
+  <h1>🏌️ バーディーバンク ⛳</h1>
   <div class="header-total">
     <div class="lbl">累計</div>
     <div class="val" id="hdrTotal">¥ 0</div>
@@ -393,25 +393,25 @@
   <div class="stats-row">
     <div class="stat-box">
       <div class="v" id="sTotal">0</div>
-      <div class="l">ゲーム数</div>
+      <div class="l">⛳ ゲーム数</div>
     </div>
     <div class="stat-box">
       <div class="v" style="color:var(--green)" id="sWins">0</div>
-      <div class="l">勝ち</div>
+      <div class="l">🏆 勝ち</div>
     </div>
     <div class="stat-box">
       <div class="v" style="color:var(--red)" id="sLoss">0</div>
-      <div class="l">負け</div>
+      <div class="l">😭 負け</div>
     </div>
     <div class="stat-box">
       <div class="v" style="color:var(--gold)" id="sRate">—</div>
-      <div class="l">勝率</div>
+      <div class="l">🎯 勝率</div>
     </div>
   </div>
 
   <!-- ADD FORM -->
   <div class="card">
-    <div class="card-title">📝 新しい記録を追加</div>
+    <div class="card-title">✏️ 新しい記録を追加</div>
     <form id="addForm" onsubmit="addRecord(event)">
       <datalist id="courseList"></datalist>
       <div class="form-grid">
@@ -424,8 +424,8 @@
         <div class="fg">
           <label>勝ち / 負け</label>
           <div class="toggle-wrap">
-            <button type="button" class="toggle-btn win active" id="btnWin"  onclick="setWL('win')">🏆 勝ち</button>
-            <button type="button" class="toggle-btn loss"       id="btnLoss" onclick="setWL('loss')">💸 負け</button>
+            <button type="button" class="toggle-btn win active" id="btnWin"  onclick="setWL('win')">🎉 勝ち</button>
+            <button type="button" class="toggle-btn loss"       id="btnLoss" onclick="setWL('loss')">😭 負け</button>
           </div>
         </div>
 
@@ -445,13 +445,13 @@
         </div>
 
       </div>
-      <button type="submit" class="btn-submit">記録する</button>
+      <button type="submit" class="btn-submit">⛳ 記録する</button>
     </form>
   </div>
 
   <!-- CHART -->
   <div class="card" id="chartCard" style="display:none">
-    <div class="card-title">📈 累計収支の推移</div>
+    <div class="card-title">📊 累計収支の推移</div>
     <div class="chart-wrap">
       <canvas id="balanceChart"></canvas>
     </div>
@@ -460,7 +460,7 @@
   <!-- HISTORY -->
   <div class="card">
     <div class="history-header">
-      <div class="card-title" style="margin:0">📋 履歴</div>
+      <div class="card-title" style="margin:0">📓 プレー履歴</div>
       <div class="rec-count" id="recCount"></div>
     </div>
     <div id="historyList"></div>
@@ -547,7 +547,7 @@ function addRecord(e) {
   // keep date, course, wl mode for convenience
 
   render();
-  toast(amount >= 0 ? '🏆 勝ち記録を追加しました！' : '💸 負け記録を追加しました');
+  toast(amount >= 0 ? '🎉 勝ち記録を追加しました！' : '😭 負け記録を追加しました…');
 }
 
 // ══════════════════════════════════════════
@@ -628,7 +628,7 @@ function render() {
   // ── history list (newest first) ──
   const el = document.getElementById('historyList');
   if (!recs.length) {
-    el.innerHTML = `<div class="empty"><div class="ei">⛳</div><p>記録がありません<br>上のフォームから追加してください</p></div>`;
+    el.innerHTML = `<div class="empty"><div class="ei">🏌️‍♂️</div><p>まだ記録がありません ⛳<br>上のフォームから追加してください</p></div>`;
     return;
   }
 
@@ -644,13 +644,13 @@ function render() {
       </div>
       <div class="rec-amounts">
         <div class="rec-amount ${r.amount >= 0 ? 'win' : 'loss'}">
-          ${r.amount >= 0 ? '+' : ''}¥${Math.abs(r.amount).toLocaleString()}
+          ${r.amount >= 0 ? '🎉 +' : '😭 -'}¥${Math.abs(r.amount).toLocaleString()}
         </div>
         <div class="rec-cumul ${r.cumul >= 0 ? 'win' : 'loss'}">
           累計 ${r.cumul >= 0 ? '+' : ''}¥${Math.abs(r.cumul).toLocaleString()}
         </div>
       </div>
-      <button class="btn-del" onclick="deleteRecord(${r.id})">削除</button>
+      <button class="btn-del" onclick="deleteRecord(${r.id})" title="削除">🗑</button>
     </div>
   `).join('') + '</div>';
 }
