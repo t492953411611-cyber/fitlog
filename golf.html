@@ -3,20 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⛳ ゴルフ賭け記録</title>
+  <title>⛳ バーディーバンク</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --bg:      #f0f6ee;
-      --s1:      #ffffff;
-      --s2:      #f5faf4;
-      --border:  #c4d9c4;
-      --text:    #1a2e1a;
-      --muted:   #6b8b6b;
-      --green:   #16a34a;
-      --red:     #dc2626;
-      --gold:    #d97706;
-      --radius:  13px;
+      --bg:       #f0f2f0;
+      --s1:       #ffffff;
+      --s2:       #f7f9f7;
+      --border:   #e0e6e0;
+      --text:     #1a1a1a;
+      --muted:    #757575;
+      --green:    #2e7d32;
+      --red:      #c62828;
+      --gold:     #e65100;
+      --hdr:      #1b5e20;
+      --radius:   10px;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -29,10 +30,10 @@
       padding-bottom: max(24px, env(safe-area-inset-bottom));
     }
 
-    /* ── HEADER ── */
+    /* ── HEADER (GDO風 濃いグリーン) ── */
     .app-header {
-      background: var(--s1);
-      border-bottom: 1px solid var(--border);
+      background: var(--hdr);
+      border-bottom: none;
       padding: 14px 18px;
       display: flex;
       align-items: center;
@@ -40,26 +41,26 @@
       position: sticky;
       top: 0;
       z-index: 50;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     }
     .app-header h1 {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 800;
-      background: linear-gradient(135deg, #4ade80, #22c55e);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.02em;
+      color: #ffffff;
+      letter-spacing: -0.01em;
     }
     .header-total {
       text-align: right;
     }
     .header-total .lbl {
       font-size: 0.68rem;
-      color: var(--muted);
+      color: rgba(255,255,255,0.65);
     }
     .header-total .val {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
+      color: #ffffff;
     }
 
     /* ── MAIN WRAP ── */
@@ -72,30 +73,32 @@
       gap: 12px;
     }
 
-    /* ── BALANCE HERO ── */
+    /* ── BALANCE HERO (GDO風 グリーングラデーション) ── */
     .hero {
-      background: var(--s1);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 24px 20px 20px;
+      background: linear-gradient(150deg, #2e7d32 0%, #43a047 60%, #66bb6a 100%);
+      border: none;
+      border-radius: 16px;
+      padding: 28px 20px 22px;
       text-align: center;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 4px 16px rgba(46,125,50,0.35);
     }
     .hero::before {
       content: '⛳';
       position: absolute;
-      font-size: 6rem;
-      opacity: 0.07;
-      right: -10px;
-      top: -10px;
+      font-size: 7rem;
+      opacity: 0.1;
+      right: -12px;
+      top: -12px;
+      filter: grayscale(1);
     }
     .hero .lbl {
-      font-size: 0.75rem;
-      color: var(--muted);
+      font-size: 0.72rem;
+      color: rgba(255,255,255,0.75);
       text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 8px;
+      letter-spacing: 0.12em;
+      margin-bottom: 10px;
     }
     .hero .amount {
       font-size: clamp(2.8rem, 12vw, 4.5rem);
@@ -104,13 +107,13 @@
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
-    .hero .amount.win  { color: var(--green); }
-    .hero .amount.loss { color: var(--red); }
-    .hero .amount.zero { color: var(--muted); }
+    .hero .amount.win  { color: #ffffff; }
+    .hero .amount.loss { color: #ffcdd2; }
+    .hero .amount.zero { color: rgba(255,255,255,0.6); }
     .hero .sub {
       font-size: 0.78rem;
-      color: var(--muted);
-      margin-top: 8px;
+      color: rgba(255,255,255,0.7);
+      margin-top: 10px;
     }
 
     /* ── STATS ROW ── */
@@ -121,10 +124,11 @@
     }
     .stat-box {
       background: var(--s1);
-      border: 1px solid var(--border);
+      border: none;
       border-radius: var(--radius);
-      padding: 11px 6px;
+      padding: 12px 6px;
       text-align: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     }
     .stat-box .v {
       font-size: 1.3rem;
@@ -137,20 +141,32 @@
       color: var(--muted);
     }
 
-    /* ── CARD ── */
+    /* ── CARD (GDO風 白カード＋影) ── */
     .card {
       background: var(--s1);
-      border: 1px solid var(--border);
+      border: none;
       border-radius: var(--radius);
       padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
     .card-title {
       font-size: 0.72rem;
-      font-weight: 600;
+      font-weight: 700;
       color: var(--muted);
       text-transform: uppercase;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.08em;
       margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .card-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 13px;
+      background: var(--green);
+      border-radius: 2px;
     }
 
     /* ── FORM ── */
@@ -163,17 +179,21 @@
     .fg.full { grid-column: 1 / -1; }
     label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
     input, select {
-      background: var(--bg);
-      border: 1px solid var(--border);
+      background: #fafafa;
+      border: 1.5px solid var(--border);
       border-radius: 8px;
       padding: 9px 11px;
       color: var(--text);
       font-size: 0.9rem;
       width: 100%;
       font-family: inherit;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    input:focus, select:focus { outline: none; border-color: var(--green); }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(46,125,50,0.12);
+    }
     input[list] { cursor: text; }
 
     /* 勝ち/負けトグル */
@@ -188,7 +208,7 @@
       flex: 1;
       padding: 9px 6px;
       border: none;
-      background: var(--bg);
+      background: #fafafa;
       color: var(--muted);
       font-size: 0.88rem;
       font-weight: 700;
@@ -196,25 +216,31 @@
       font-family: inherit;
       transition: all 0.2s;
     }
-    .toggle-btn.win.active  { background: rgba(34,197,94,.2);  color: var(--green); }
-    .toggle-btn.loss.active { background: rgba(239,68,68,.2);  color: var(--red); }
-    .toggle-btn:not(.active):hover { background: var(--s2); }
+    .toggle-btn.win.active  { background: #e8f5e9; color: var(--green); }
+    .toggle-btn.loss.active { background: #ffebee; color: var(--red); }
+    .toggle-btn:not(.active):hover { background: #f0f0f0; }
 
     .btn-submit {
       width: 100%;
-      padding: 12px;
-      margin-top: 4px;
+      padding: 13px;
+      margin-top: 8px;
       border-radius: 8px;
       border: none;
       cursor: pointer;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-weight: 700;
-      background: linear-gradient(135deg, #16a34a, #15803d);
+      background: var(--green);
       color: white;
       font-family: inherit;
-      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.03em;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(46,125,50,0.3);
     }
-    .btn-submit:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-submit:hover {
+      background: #1b5e20;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(46,125,50,0.4);
+    }
 
     /* ── CHART ── */
     .chart-wrap {
@@ -240,15 +266,17 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      background: var(--s2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      background: var(--s1);
+      border: none;
+      border-left: 4px solid transparent;
+      border-radius: 8px;
       padding: 11px 13px;
-      transition: border-color 0.2s;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      transition: box-shadow 0.2s;
     }
-    .rec-item:hover { border-color: #a0c0a0; }
-    .rec-item.win-row  { border-left: 3px solid var(--green); }
-    .rec-item.loss-row { border-left: 3px solid var(--red); }
+    .rec-item:hover { box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
+    .rec-item.win-row  { border-left-color: var(--green); }
+    .rec-item.loss-row { border-left-color: var(--red); }
 
     .rec-date {
       font-size: 0.72rem;
@@ -321,9 +349,9 @@
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateY(80px);
-      background: var(--s2);
-      border: 1px solid var(--border);
-      color: var(--text);
+      background: #1b5e20;
+      border: none;
+      color: #ffffff;
       padding: 10px 22px;
       border-radius: 24px;
       font-size: 0.85rem;
@@ -345,7 +373,7 @@
 
 <!-- HEADER -->
 <header class="app-header">
-  <h1>⛳ ゴルフ賭け記録</h1>
+  <h1>⛳ バーディーバンク</h1>
   <div class="header-total">
     <div class="lbl">累計</div>
     <div class="val" id="hdrTotal">¥ 0</div>
@@ -570,7 +598,8 @@ function render() {
   const hdr = document.getElementById('hdrTotal');
   hdr.textContent = total === 0 ? '¥ 0'
     : (total > 0 ? '+¥' : '-¥') + Math.abs(total).toLocaleString();
-  hdr.style.color = total > 0 ? 'var(--green)' : total < 0 ? 'var(--red)' : 'var(--muted)';
+  // ヘッダーは緑背景なので淡い色で表示
+  hdr.style.color = total > 0 ? '#a5d6a7' : total < 0 ? '#ef9a9a' : 'rgba(255,255,255,0.6)';
 
   // ── stats ──
   document.getElementById('sTotal').textContent = recs.length;
@@ -638,15 +667,15 @@ function renderChart(records) {
   const labels = records.map(r => fmtDate(r.date));
   const data   = records.map(r => r.cumul);
   const lastVal = data[data.length - 1] || 0;
-  const lineColor = lastVal >= 0 ? '#22c55e' : '#ef4444';
+  const lineColor = lastVal >= 0 ? '#2e7d32' : '#c62828';
 
   // zero baseline dataset
   const zeroLine = data.map(() => 0);
 
   if (chartInst) chartInst.destroy();
 
-  Chart.defaults.color = '#6b8b6b';
-  Chart.defaults.borderColor = '#c4d9c4';
+  Chart.defaults.color = '#757575';
+  Chart.defaults.borderColor = '#e0e0e0';
 
   chartInst = new Chart(canvas, {
     type: 'line',
@@ -668,7 +697,7 @@ function renderChart(records) {
         {
           label: '±0',
           data: zeroLine,
-          borderColor: '#2d4030',
+          borderColor: '#bdbdbd',
           borderWidth: 1,
           borderDash: [4, 4],
           pointRadius: 0,
@@ -695,11 +724,11 @@ function renderChart(records) {
       },
       scales: {
         x: {
-          grid: { color: '#ddeedd' },
+          grid: { color: '#f0f0f0' },
           ticks: { maxTicksLimit: 8, font: { size: 10 } }
         },
         y: {
-          grid: { color: '#ddeedd' },
+          grid: { color: '#f0f0f0' },
           ticks: {
             font: { size: 10 },
             callback: v => (v >= 0 ? '+¥' : '-¥') + Math.abs(v).toLocaleString(),
