@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌸 マイクローゼット</title>
+  <style>
+    :root {
+      --pink: #e91e63;
+      --pink-mid: #f06292;
+      --pink-light: #f8bbd0;
+      --pink-pale: #fce4ec;
+      --purple: #9c27b0;
+      --bg: #fff8fb;
+      --card: #ffffff;
+      --border: #f0d9e8;
+      --text: #333333;
+      --muted: #999999;
+      --shadow: 0 2px 14px rgba(233,30,99,0.1);
+      --radius: 16px;
+      --tab-h: 64px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: calc(var(--tab-h) + env(safe-area-inset-bottom));
+    }
+
+    /* ── Header ── */
+    .app-header {
+      background: linear-gradient(135deg, #e91e63, #9c27b0);
+      color: white;
+      padding: 20px 20px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .app-header h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: 0.5px; }
+    .app-header p { font-size: 0.72rem; opacity: 0.85; margin-top: 2px; }
+
+    /* ── Tab bar ── */
+    .tab-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+      background: white;
+      display: flex;
+      border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 100;
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.07);
+    }
+    .tab-btn {
+      flex: 1;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 3px; border: none; background: transparent;
+      cursor: pointer; color: var(--muted);
+      font-size: 0.63rem; transition: color 0.2s;
+    }
+    .tab-btn .icon { font-size: 1.4rem; }
+    .tab-btn.active { color: var(--pink); }
+
+    /* ── Pages ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex; gap: 0;
+      background: white;
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-item {
+      flex: 1; text-align: center;
+      padding: 10px 8px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num { font-size: 1.15rem; font-weight: 700; color: var(--pink); }
+    .stat-label { font-size: 0.62rem; color: var(--muted); margin-top: 1px; }
+
+    /* ── Category filter ── */
+    .category-filter {
+      padding: 10px 14px;
+      display: flex; gap: 7px;
+      overflow-x: auto; scrollbar-width: none;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 76px; z-index: 50;
+    }
+    .category-filter::-webkit-scrollbar { display: none; }
+    .cat-pill {
+      flex-shrink: 0; padding: 6px 13px;
+      border-radius: 20px; border: 1.5px solid var(--border);
+      background: white; font-size: 0.78rem;
+      color: var(--muted); cursor: pointer;
+      transition: all 0.18s; white-space: nowrap;
+    }
+    .cat-pill.active {
+      background: var(--pink-pale);
+      border-color: var(--pink);
+      color: var(--pink); font-weight: 600;
+    }
+
+    /* ── Clothes grid ── */
+    .clothes-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px; padding: 14px;
+    }
+
+    /* ── Card ── */
+    .clothes-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      cursor: pointer; position: relative;
+      transition: transform 0.18s;
+    }
+    .clothes-card:active { transform: scale(0.97); }
+    .clothes-card .photo {
+      width: 100%; aspect-ratio: 1;
+      object-fit: cover; display: block;
+      background: var(--pink-pale);
+    }
+    .clothes-card .photo-placeholder {
+      width: 100%; aspect-ratio: 1;
+      background: linear-gradient(135deg, var(--pink-pale), #f3e5f5);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.8rem;
+    }
+    .clothes-card .info { padding: 8px 10px 10px; }
+    .clothes-card .name {
+      font-size: 0.8rem; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .clothes-card .cat-label { font-size: 0.69rem; color: var(--pink); margin-top: 2px; }
+    .clothes-card .season-label { font-size: 0.62rem; color: var(--muted); }
+    .clothes-card .delete-btn {
+      position: absolute; top: 6px; right: 6px;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.92); border: none;
+      font-size: 0.8rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.15);
+    }
+
+    /* ── Selectable (coord mode) ── */
+    .clothes-card.selectable .select-overlay {
+      position: absolute; inset: 0;
+      border-radius: var(--radius);
+      border: 3px solid transparent;
+      transition: border-color 0.18s, background 0.18s;
+    }
+    .clothes-card.selectable.selected .select-overlay {
+      border-color: var(--pink);
+      background: rgba(233,30,99,0.06);
+    }
+    .clothes-card .check-badge {
+      position: absolute; top: 7px; left: 7px;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: var(--pink); color: white; font-size: 0.7rem;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transform: scale(0.4); transition: all 0.2s;
+    }
+    .clothes-card.selected .check-badge { opacity: 1; transform: scale(1); }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed;
+      bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 14px);
+      right: 18px; width: 54px; height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e91e63, #9c27b0);
+      color: white; border: none; font-size: 1.6rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(233,30,99,0.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 99; transition: transform 0.18s;
+    }
+    .fab:active { transform: scale(0.92); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 200; display: none; align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-sheet {
+      background: white; border-radius: 24px 24px 0 0;
+      width: 100%; max-height: 92vh; overflow-y: auto;
+      padding: 20px 20px calc(24px + env(safe-area-inset-bottom));
+      animation: slideUp 0.28s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    .modal-handle {
+      width: 40px; height: 4px; background: #e0e0e0;
+      border-radius: 2px; margin: 0 auto 18px;
+    }
+    .modal-title {
+      font-size: 1.05rem; font-weight: 700;
+      color: var(--text); margin-bottom: 18px; text-align: center;
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 15px; }
+    .form-label {
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--muted); margin-bottom: 6px; display: block;
+    }
+    .form-input {
+      width: 100%; padding: 11px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px; font-size: 0.92rem;
+      color: var(--text); background: white;
+      outline: none; transition: border-color 0.18s;
+    }
+    .form-input:focus { border-color: var(--pink); }
+
+    .cat-select { display: flex; flex-wrap: wrap; gap: 7px; }
+    .cat-select-pill {
+      padding: 6px 13px; border-radius: 20px;
+      border: 1.5px solid var(--border);
+      font-size: 0.78rem; color: var(--muted);
+      cursor: pointer; transition: all 0.18s; background: white;
+    }
+    .cat-select-pill.selected {
+      background: var(--pink-pale);
+      border-color: var(--pink); color: var(--pink); font-weight: 600;
+    }
+
+    /* ── Photo upload ── */
+    .photo-upload {
+      width: 100%; max-height: 200px; aspect-ratio: 1.6;
+      border: 2px dashed var(--pink-light); border-radius: 16px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer; background: var(--pink-pale);
+      position: relative; overflow: hidden; transition: border-color 0.18s;
+    }
+    .photo-upload:hover { border-color: var(--pink); }
+    .photo-upload input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .photo-upload .upload-icon { font-size: 2rem; }
+    .photo-upload .upload-text { font-size: 0.78rem; color: var(--pink); margin-top: 4px; }
+    .photo-upload .photo-preview {
+      width: 100%; height: 100%; object-fit: cover;
+      position: absolute; inset: 0; display: none;
+    }
+
+    /* ── Pill groups (season/color) ── */
+    .pill-group { display: flex; flex-wrap: wrap; gap: 7px; }
+    .s-pill {
+      padding: 6px 13px; border-radius: 20px;
+      border: 1.5px solid var(--border); font-size: 0.78rem;
+      color: var(--muted); cursor: pointer; background: white;
+      transition: all 0.18s;
+    }
+    .s-pill.selected {
+      background: #e8f5e9; border-color: #4caf50; color: #2e7d32; font-weight: 600;
+    }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, #e91e63, #9c27b0);
+      color: white; border: none; border-radius: 14px;
+      font-size: 0.95rem; font-weight: 700;
+      cursor: pointer; margin-top: 6px; transition: opacity 0.18s;
+    }
+    .btn-primary:active { opacity: 0.85; }
+
+    /* ── Coord page header ── */
+    .coord-header {
+      background: white; padding: 14px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 76px; z-index: 50;
+    }
+    .coord-name-input {
+      width: 100%; padding: 10px 13px;
+      border: 1.5px solid var(--border); border-radius: 12px;
+      font-size: 0.88rem; color: var(--text);
+      outline: none; margin-bottom: 10px;
+    }
+    .coord-name-input:focus { border-color: var(--pink); }
+
+    .selected-preview {
+      display: flex; gap: 7px; overflow-x: auto;
+      padding-bottom: 4px; min-height: 60px;
+      align-items: center; scrollbar-width: none;
+    }
+    .selected-preview::-webkit-scrollbar { display: none; }
+    .selected-hint { font-size: 0.78rem; color: var(--muted); }
+    .selected-count-badge {
+      font-size: 0.75rem; color: var(--pink); font-weight: 600; flex-shrink: 0;
+    }
+    .item-thumb {
+      width: 50px; height: 50px; border-radius: 10px;
+      object-fit: cover; flex-shrink: 0;
+      border: 2px solid var(--pink);
+    }
+    .item-thumb-placeholder {
+      width: 50px; height: 50px; border-radius: 10px;
+      background: var(--pink-pale);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; flex-shrink: 0;
+      border: 2px solid var(--pink);
+    }
+
+    .btn-save-coord {
+      display: block; width: 100%;
+      padding: 11px;
+      background: linear-gradient(135deg, #e91e63, #9c27b0);
+      color: white; border: none; border-radius: 12px;
+      font-size: 0.88rem; font-weight: 700;
+      cursor: pointer; margin-top: 9px; transition: opacity 0.18s;
+    }
+    .btn-save-coord:active { opacity: 0.85; }
+    .btn-save-coord:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Outfit list ── */
+    .outfit-list { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+    .outfit-card {
+      background: white; border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .outfit-card-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--border);
+    }
+    .outfit-name { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+    .outfit-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+    .delete-outfit {
+      background: none; border: none;
+      font-size: 1rem; cursor: pointer; color: var(--muted); padding: 4px;
+    }
+    .outfit-items {
+      display: flex; gap: 8px;
+      padding: 12px 14px; overflow-x: auto; scrollbar-width: none;
+    }
+    .outfit-items::-webkit-scrollbar { display: none; }
+    .outfit-item-wrapper {
+      display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+    }
+    .outfit-item-img {
+      width: 78px; height: 78px; border-radius: 12px;
+      object-fit: cover; flex-shrink: 0;
+    }
+    .outfit-item-ph {
+      width: 78px; height: 78px; border-radius: 12px;
+      background: var(--pink-pale);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; flex-shrink: 0;
+    }
+    .outfit-item-label {
+      font-size: 0.62rem; color: var(--muted);
+      text-align: center; margin-top: 3px; width: 78px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── Empty state ── */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+      grid-column: 1 / -1;
+    }
+    .empty-state .e-icon { font-size: 3.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 0.87rem; line-height: 1.7; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 76px);
+      left: 50%; transform: translateX(-50%) translateY(16px);
+      background: rgba(30,30,30,0.88); color: white;
+      padding: 9px 20px; border-radius: 24px;
+      font-size: 0.83rem; z-index: 300;
+      opacity: 0; transition: all 0.28s;
+      white-space: nowrap; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Responsive ── */
+    @media (min-width: 480px) {
+      .clothes-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 700px) {
+      .clothes-grid { grid-template-columns: repeat(4, 1fr); }
+      body { max-width: 700px; margin: 0 auto; }
+      .tab-bar, .fab { max-width: 700px; left: 50%; transform: translateX(-50%); }
+      .fab:active { transform: translateX(-50%) scale(0.92); }
+      .toast { bottom: calc(var(--tab-h) + 76px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="app-header">
+    <h1>🌸 マイクローゼット</h1>
+    <p>おしゃれを管理して、コーデを楽しもう</p>
+  </header>
+
+  <!-- Page: クローゼット -->
+  <div class="page active" id="page-closet">
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="category-filter" id="cat-filter"></div>
+    <div class="clothes-grid" id="clothes-grid"></div>
+  </div>
+
+  <!-- Page: コーデ作成 -->
+  <div class="page" id="page-coord">
+    <div class="coord-header">
+      <input class="coord-name-input" type="text" id="coord-name" placeholder="✏️ コーデ名（例：春のデートコーデ）">
+      <div class="selected-preview" id="selected-preview">
+        <span class="selected-hint">👆 下のアイテムを選んでコーデを作ろう ✨</span>
+      </div>
+      <button class="btn-save-coord" id="btn-save-coord" disabled onclick="saveCoordinate()">
+        💾 このコーデを保存する
+      </button>
+    </div>
+    <div class="category-filter" id="coord-cat-filter"></div>
+    <div class="clothes-grid" id="coord-clothes-grid"></div>
+  </div>
+
+  <!-- Page: コーデ一覧 -->
+  <div class="page" id="page-outfits">
+    <div class="outfit-list" id="outfit-list"></div>
+  </div>
+
+  <!-- Tab bar -->
+  <nav class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('closet')" id="tab-closet">
+      <span class="icon">👗</span>
+      <span>クローゼット</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('coord')" id="tab-coord">
+      <span class="icon">✨</span>
+      <span>コーデ作成</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('outfits')" id="tab-outfits">
+      <span class="icon">💝</span>
+      <span>コーデ一覧</span>
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="fab-add" onclick="openAddModal()">＋</button>
+
+  <!-- Add clothes modal -->
+  <div class="modal-overlay" id="add-modal" onclick="handleOverlayClick(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">👗 服を追加する</div>
+
+      <div class="form-group">
+        <label class="form-label">📷 写真</label>
+        <div class="photo-upload" id="photo-upload-area">
+          <input type="file" accept="image/*" capture="environment" id="photo-input" onchange="handlePhotoSelect(event)">
+          <span class="upload-icon" id="upload-icon">📷</span>
+          <span class="upload-text" id="upload-text">タップして写真を選ぶ</span>
+          <img class="photo-preview" id="photo-preview" alt="preview">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">✏️ アイテム名</label>
+        <input type="text" class="form-input" id="item-name" placeholder="例：白いTシャツ、花柄ワンピース">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🏷️ カテゴリー</label>
+        <div class="cat-select" id="cat-select"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">🌸 季節</label>
+        <div class="pill-group" id="season-select">
+          <button class="s-pill" data-val="春夏" onclick="selectPill(this, 'season')">🌸 春夏</button>
+          <button class="s-pill" data-val="秋冬" onclick="selectPill(this, 'season')">🍂 秋冬</button>
+          <button class="s-pill selected" data-val="オールシーズン" onclick="selectPill(this, 'season')">🌈 オール</button>
+        </div>
+      </div>
+
+      <button class="btn-primary" onclick="saveClothing()">✨ 登録する</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const CATS = ['トップス','ボトムス','ワンピース','アウター','シューズ','バッグ','アクセサリー','その他'];
+    const CAT_EMOJI = {
+      'トップス':'👕','ボトムス':'👖','ワンピース':'👗','アウター':'🧥',
+      'シューズ':'👟','バッグ':'👜','アクセサリー':'💍','その他':'✨'
+    };
+
+    let data = JSON.parse(localStorage.getItem('closet2') || '{"clothes":[],"coordinates":[]}');
+    let closetCat = 'すべて';
+    let coordCat = 'すべて';
+    let selectedItems = new Set();
+    let selectedPhotoData = null;
+    let selectedSeason = 'オールシーズン';
+    let selectedCat = null;
+
+    // ── Persist ──
+    function save() {
+      try {
+        localStorage.setItem('closet2', JSON.stringify(data));
+      } catch (e) {
+        showToast('⚠️ 保存容量が不足しています。写真を減らしてください。');
+      }
+    }
+
+    // ── Toast ──
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    // ── Image compress ──
+    function compressImage(file) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            const MAX = 420;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+            else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', 0.68));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ── Photo select ──
+    async function handlePhotoSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      selectedPhotoData = await compressImage(file);
+      const preview = document.getElementById('photo-preview');
+      preview.src = selectedPhotoData;
+      preview.style.display = 'block';
+      document.getElementById('upload-icon').style.display = 'none';
+      document.getElementById('upload-text').style.display = 'none';
+    }
+
+    // ── Pill selection helper ──
+    function selectPill(btn, groupId) {
+      document.querySelectorAll('#' + groupId + '-select .s-pill').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      if (groupId === 'season') selectedSeason = btn.dataset.val;
+    }
+
+    // ── Init category select in form ──
+    function initCatSelect() {
+      const c = document.getElementById('cat-select');
+      c.innerHTML = '';
+      selectedCat = null;
+      CATS.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'cat-select-pill';
+        btn.textContent = CAT_EMOJI[cat] + ' ' + cat;
+        btn.onclick = () => {
+          c.querySelectorAll('.cat-select-pill').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedCat = cat;
+        };
+        c.appendChild(btn);
+      });
+    }
+
+    // ── Modal ──
+    function openAddModal() {
+      document.getElementById('add-modal').classList.add('open');
+      document.getElementById('item-name').value = '';
+      document.getElementById('photo-preview').style.display = 'none';
+      document.getElementById('photo-preview').src = '';
+      document.getElementById('upload-icon').style.display = '';
+      document.getElementById('upload-text').style.display = '';
+      document.getElementById('photo-input').value = '';
+      selectedPhotoData = null; selectedCat = null; selectedSeason = 'オールシーズン';
+      document.querySelectorAll('#season-select .s-pill').forEach(b => {
+        b.classList.toggle('selected', b.dataset.val === 'オールシーズン');
+      });
+      initCatSelect();
+    }
+    function closeAddModal() { document.getElementById('add-modal').classList.remove('open'); }
+    function handleOverlayClick(e) { if (e.target.id === 'add-modal') closeAddModal(); }
+
+    // ── Save clothing ──
+    function saveClothing() {
+      const name = document.getElementById('item-name').value.trim();
+      if (!name) { showToast('アイテム名を入力してください 📝'); return; }
+      if (!selectedCat) { showToast('カテゴリーを選んでください 🏷️'); return; }
+      const item = {
+        id: Date.now().toString(),
+        name, category: selectedCat,
+        season: selectedSeason,
+        photo: selectedPhotoData,
+        addedAt: new Date().toLocaleDateString('ja-JP')
+      };
+      data.clothes.unshift(item);
+      save();
+      closeAddModal();
+      renderCloset();
+      showToast('✨ 登録しました！');
+    }
+
+    // ── Tab switch ──
+    function switchTab(tab) {
+      ['closet','coord','outfits'].forEach(t => {
+        document.getElementById('page-' + t).classList.toggle('active', t === tab);
+        document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+      });
+      document.getElementById('fab-add').style.display = (tab === 'closet') ? 'flex' : 'none';
+      if (tab === 'coord') renderCoordPage();
+      if (tab === 'outfits') renderOutfits();
+    }
+
+    // ── Category filter ──
+    function renderCatFilter(containerId, current, onChange) {
+      const container = document.getElementById(containerId);
+      const cats = ['すべて', ...CATS];
+      container.innerHTML = '';
+      cats.forEach(cat => {
+        const btn = document.createElement('button');
+        btn.className = 'cat-pill' + (cat === current ? ' active' : '');
+        btn.textContent = (cat === 'すべて') ? '🌈 すべて' : CAT_EMOJI[cat] + ' ' + cat;
+        btn.onclick = () => { onChange(cat); };
+        container.appendChild(btn);
+      });
+    }
+
+    // ── Stats bar ──
+    function renderStats() {
+      const bar = document.getElementById('stats-bar');
+      const cats = {};
+      data.clothes.forEach(c => { cats[c.category] = (cats[c.category] || 0) + 1; });
+      const topCat = Object.keys(cats).sort((a,b) => cats[b]-cats[a])[0];
+      bar.innerHTML = `
+        <div class="stat-item">
+          <div class="stat-num">${data.clothes.length}</div>
+          <div class="stat-label">アイテム数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">${data.coordinates.length}</div>
+          <div class="stat-label">コーデ数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">${topCat ? CAT_EMOJI[topCat] : '—'}</div>
+          <div class="stat-label">${topCat ? '最多: ' + topCat : 'まだ0点'}</div>
+        </div>
+      `;
+    }
+
+    // ── Closet ──
+    function renderCloset() {
+      renderStats();
+      renderCatFilter('cat-filter', closetCat, cat => {
+        closetCat = cat;
+        renderCatFilter('cat-filter', closetCat, () => {});
+        renderClothesGrid('clothes-grid', closetCat, false);
+      });
+      renderClothesGrid('clothes-grid', closetCat, false);
+    }
+
+    // ── Clothes grid ──
+    function renderClothesGrid(gridId, category, selectable) {
+      const grid = document.getElementById(gridId);
+      const list = (category === 'すべて') ? data.clothes : data.clothes.filter(c => c.category === category);
+
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <div class="e-icon">${selectable ? '🛍️' : '👗'}</div>
+            <p>${selectable
+              ? 'アイテムがありません。<br>クローゼットに服を<br>追加してね！'
+              : 'まだ服が登録されていません。<br>＋ボタンから追加しよう！'}</p>
+          </div>`;
+        return;
+      }
+      grid.innerHTML = '';
+      list.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'clothes-card'
+          + (selectable ? ' selectable' : '')
+          + (selectedItems.has(item.id) ? ' selected' : '');
+        card.dataset.id = item.id;
+
+        const photoHtml = item.photo
+          ? `<img class="photo" src="${item.photo}" alt="${item.name}" loading="lazy">`
+          : `<div class="photo-placeholder">${CAT_EMOJI[item.category] || '👗'}</div>`;
+
+        card.innerHTML = `
+          ${photoHtml}
+          ${selectable ? `<div class="select-overlay"></div><div class="check-badge">✓</div>` : ''}
+          ${!selectable ? `<button class="delete-btn" onclick="deleteClothing('${item.id}',event)">🗑</button>` : ''}
+          <div class="info">
+            <div class="name">${escHtml(item.name)}</div>
+            <div class="cat-label">${CAT_EMOJI[item.category]} ${item.category}</div>
+            <div class="season-label">${item.season}</div>
+          </div>`;
+
+        if (selectable) card.onclick = () => toggleItemSelection(item.id);
+        grid.appendChild(card);
+      });
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function deleteClothing(id, e) {
+      e.stopPropagation();
+      if (!confirm('このアイテムを削除しますか？')) return;
+      data.clothes = data.clothes.filter(c => c.id !== id);
+      // Remove from any coordinates
+      data.coordinates.forEach(co => { co.items = co.items.filter(i => i !== id); });
+      selectedItems.delete(id);
+      save();
+      renderCloset();
+      showToast('🗑 削除しました');
+    }
+
+    // ── Coord page ──
+    function renderCoordPage() {
+      renderCatFilter('coord-cat-filter', coordCat, cat => {
+        coordCat = cat;
+        renderCatFilter('coord-cat-filter', coordCat, () => {});
+        renderClothesGrid('coord-clothes-grid', coordCat, true);
+      });
+      renderClothesGrid('coord-clothes-grid', coordCat, true);
+      renderSelectedPreview();
+    }
+
+    function toggleItemSelection(id) {
+      if (selectedItems.has(id)) selectedItems.delete(id);
+      else selectedItems.add(id);
+      const card = document.querySelector(`#coord-clothes-grid [data-id="${id}"]`);
+      if (card) card.classList.toggle('selected', selectedItems.has(id));
+      renderSelectedPreview();
+    }
+
+    function renderSelectedPreview() {
+      const preview = document.getElementById('selected-preview');
+      const saveBtn = document.getElementById('btn-save-coord');
+      if (selectedItems.size === 0) {
+        preview.innerHTML = '<span class="selected-hint">👆 下のアイテムを選んでコーデを作ろう ✨</span>';
+        saveBtn.disabled = true;
+        return;
+      }
+      saveBtn.disabled = false;
+      const items = [...selectedItems].map(id => data.clothes.find(c => c.id === id)).filter(Boolean);
+      preview.innerHTML = `<span class="selected-count-badge">${items.length}点</span>`;
+      items.forEach(item => {
+        if (item.photo) {
+          const img = document.createElement('img');
+          img.className = 'item-thumb'; img.src = item.photo; img.alt = item.name;
+          preview.appendChild(img);
+        } else {
+          const div = document.createElement('div');
+          div.className = 'item-thumb-placeholder';
+          div.textContent = CAT_EMOJI[item.category] || '👗';
+          preview.appendChild(div);
+        }
+      });
+    }
+
+    function saveCoordinate() {
+      if (selectedItems.size === 0) { showToast('アイテムを選んでください'); return; }
+      const name = document.getElementById('coord-name').value.trim()
+        || `コーデ ${data.coordinates.length + 1}`;
+      data.coordinates.unshift({
+        id: Date.now().toString(),
+        name,
+        items: [...selectedItems],
+        savedAt: new Date().toLocaleDateString('ja-JP')
+      });
+      save();
+      selectedItems.clear();
+      document.getElementById('coord-name').value = '';
+      renderCoordPage();
+      renderStats();
+      showToast('💝 コーデを保存しました！');
+      switchTab('outfits');
+    }
+
+    // ── Outfits ──
+    function renderOutfits() {
+      const list = document.getElementById('outfit-list');
+      if (data.coordinates.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state" style="grid-column:unset">
+            <div class="e-icon">💝</div>
+            <p>コーデがまだありません。<br>「コーデ作成」タブから<br>作ってみましょう！</p>
+          </div>`;
+        return;
+      }
+      list.innerHTML = '';
+      data.coordinates.forEach(coord => {
+        const items = coord.items.map(id => data.clothes.find(c => c.id === id)).filter(Boolean);
+        const card = document.createElement('div');
+        card.className = 'outfit-card';
+        const itemsHtml = items.map(item => `
+          <div class="outfit-item-wrapper">
+            ${item.photo
+              ? `<img class="outfit-item-img" src="${item.photo}" alt="${escHtml(item.name)}">`
+              : `<div class="outfit-item-ph">${CAT_EMOJI[item.category] || '👗'}</div>`}
+            <div class="outfit-item-label">${escHtml(item.name)}</div>
+          </div>
+        `).join('');
+        card.innerHTML = `
+          <div class="outfit-card-header">
+            <div>
+              <div class="outfit-name">✨ ${escHtml(coord.name)}</div>
+              <div class="outfit-meta">${coord.savedAt} · ${items.length}点</div>
+            </div>
+            <button class="delete-outfit" onclick="deleteOutfit('${coord.id}')">🗑</button>
+          </div>
+          <div class="outfit-items">${itemsHtml || '<span style="color:#ccc;font-size:.8rem">アイテムが削除されています</span>'}</div>`;
+        list.appendChild(card);
+      });
+    }
+
+    function deleteOutfit(id) {
+      if (!confirm('このコーデを削除しますか？')) return;
+      data.coordinates = data.coordinates.filter(c => c.id !== id);
+      save();
+      renderOutfits();
+      renderStats();
+      showToast('🗑 削除しました');
+    }
+
+    // ── Init ──
+    initCatSelect();
+    renderCloset();
+  </script>
+</body>
+</html>
