@@ -47,19 +47,26 @@ async function geminiAnalyze(file: File): Promise<AnalysisResult> {
   const mimeType = file.type || 'image/jpeg';
   const today = new Date().toISOString().slice(0, 10);
 
-  const prompt = `このレシートまたはPayPay支払い画面から情報を抽出してください。
-必ず以下のJSON形式のみで返答してください（説明文は不要）:
+  const prompt = `画像を詳しく分析して、支払い情報を抽出してください。
+
+【重要な注意事項】
+- PayPayウォレット画面の場合:「残高」や「PayPay残高」の大きな金額は無視してください
+- 抽出すべきは「支払い取引」の金額です（例：「¥772 支払い」「-772円」のような取引履歴の金額）
+- 最も新しい/目立つ「支払い」取引の金額を選んでください
+- レシートの場合は「合計」「小計」「お支払い金額」の金額を選んでください
+
+必ず以下のJSON形式のみで返答してください（説明文不要）:
 {
   "date": "YYYY-MM-DD",
-  "amount": 数値（合計金額、円）,
+  "amount": 数値（支払い金額、円、¥マークなし）,
   "merchant": "店名",
   "paymentMethod": "paypay" または "cash" または "card" または "other",
   "confidence": "high" または "medium" または "low",
   "imageType": "receipt" または "paypay" または "unknown"
 }
 - dateが読み取れない場合は今日の日付（${today}）を使用
-- amountは税込合計金額の数値のみ（¥マークなし）
-- 読み取れない項目はnullではなく推測値を入れること`;
+- amountは必ず支払い取引の金額（残高ではない）
+- 読み取れない項目は推測値を入れること`;
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`,
