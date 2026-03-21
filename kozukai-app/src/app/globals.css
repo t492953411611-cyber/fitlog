@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Hiragino Kaku Gothic ProN', 'ヒラギノ角ゴ ProN W3', 'Meiryo', 'メイリオ',
+      'Segoe UI', system-ui, -apple-system, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100;
+  }
+  .btn-primary {
+    @apply bg-slate-800 text-white rounded-xl font-semibold py-3 px-6
+           active:opacity-80 transition-opacity disabled:opacity-40;
+  }
+  .btn-secondary {
+    @apply bg-slate-100 text-slate-700 rounded-xl font-semibold py-3 px-6
+           active:opacity-70 transition-opacity;
+  }
+  .input-field {
+    @apply w-full border border-slate-200 rounded-xl px-4 py-3 text-base
+           focus:outline-none focus:ring-2 focus:ring-slate-400 bg-white;
+  }
+  .label {
+    @apply text-sm font-medium text-slate-600 mb-1 block;
+  }
+}
