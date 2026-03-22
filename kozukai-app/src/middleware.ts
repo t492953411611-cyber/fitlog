@@ -23,6 +23,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // API呼び出しは401を返す（リダイレクトするとPUT/POSTが405になる）
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // 未認証 → ログイン画面へ
   const loginUrl = new URL('/login', request.url);
   loginUrl.searchParams.set('next', pathname);
