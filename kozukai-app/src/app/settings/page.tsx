@@ -34,7 +34,7 @@ export default function SettingsPage() {
     const v = Number(budgetInput);
     if (isNaN(v) || v < 0) return;
     const res = await fetch('/api/budget', {
-      method: 'PUT',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ budget: v }),
     });

@@ -6,6 +6,14 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
+  return updateBudget(request);
+}
+
+export async function POST(request: NextRequest) {
+  return updateBudget(request);
+}
+
+async function updateBudget(request: NextRequest) {
   try {
     const { budget } = await request.json();
     if (typeof budget !== 'number' || budget < 0) {
