@@ -108,7 +108,8 @@ export async function getBudget(): Promise<number> {
 }
 
 export async function setBudget(amount: number): Promise<void> {
-  await supabase.from('settings').upsert({ key: 'budget', value: String(amount) });
+  const { error } = await supabase.from('settings').upsert({ key: 'budget', value: String(amount) });
+  if (error) throw error;
 }
 
 // ── Categories ────────────────────────────────────────────

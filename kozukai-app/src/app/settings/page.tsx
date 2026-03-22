@@ -33,11 +33,16 @@ export default function SettingsPage() {
   async function saveBudget() {
     const v = Number(budgetInput);
     if (isNaN(v) || v < 0) return;
-    await fetch('/api/budget', {
+    const res = await fetch('/api/budget', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ budget: v }),
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      alert('保存に失敗しました: ' + (err.error ?? res.status));
+      return;
+    }
     setBudgetState(v);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
