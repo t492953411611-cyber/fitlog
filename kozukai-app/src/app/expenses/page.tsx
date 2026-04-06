@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import ExpenseList from '@/components/expenses/ExpenseList';
 import type { Expense, Category } from '@/lib/types';
 import { formatCurrency, formatMonth } from '@/lib/utils';
+import { getExpenses, getCategories, deleteExpense, updateExpense } from '@/lib/client-storage';
 
 type SortKey = 'date' | 'amount_desc' | 'amount_asc';
 
@@ -19,11 +20,11 @@ export default function ExpensesPage() {
 
   const fetchExpenses = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ year: String(year), month: String(month) });
-    if (filterCat) params.set('category', filterCat);
+    const filters: { year: number; month: number; category?: string } = { year, month };
+    if (filterCat) filters.category = filterCat;
     const [e, c] = await Promise.all([
-      fetch(`/api/expenses?${params}`).then((r) => r.json()),
-      fetch('/api/categories').then((r) => r.json()),
+      getExpenses(filters),
+      getCategories(),
     ]);
     setExpenses(e);
     setCategories(c);
@@ -42,16 +43,12 @@ export default function ExpensesPage() {
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/expenses/${id}`, { method: 'DELETE' });
+    await deleteExpense(id);
     fetchExpenses();
   }
 
   async function handleUpdate(id: string, data: Partial<Expense>) {
-    await fetch(`/api/expenses/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
+    await updateExpense(id, data);
     fetchExpenses();
   }
 

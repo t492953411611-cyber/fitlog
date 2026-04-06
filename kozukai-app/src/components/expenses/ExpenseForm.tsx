@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { Category, PaymentMethod } from '@/lib/types';
 import { todayStr } from '@/lib/utils';
 import { PAYMENT_METHOD_LABELS } from '@/lib/constants';
+import { createExpense } from '@/lib/client-storage';
 
 interface Props {
   categories: Category[];
@@ -44,16 +45,19 @@ export default function ExpenseForm({
     setSaving(true);
     setError('');
 
-    const res = await fetch('/api/expenses', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, amount: Number(amount), merchant, category, paymentMethod, memo, sourceType }),
-    });
-
-    if (res.ok) {
+    try {
+      await createExpense({
+        date,
+        amount: Number(amount),
+        merchant,
+        category,
+        paymentMethod,
+        memo,
+        sourceType,
+      });
       onSubmit?.();
       router.push('/');
-    } else {
+    } catch {
       setError('保存に失敗しました');
       setSaving(false);
     }

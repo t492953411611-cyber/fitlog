@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(/c/Users/t4929/AppData/Roaming/npm/vercel --version)",
+      "Bash(C:/Users/t4929/AppData/Roaming/npm/vercel domains:*)",
+      "Bash(C:/Users/t4929/AppData/Roaming/npm/vercel inspect:*)",
+      "Bash(echo $ANTHROPIC_API_KEY)",
+      "Read(//c/Users/t4929/.claude/**)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
+      "Bash(npm uninstall:*)",
+      "Bash(curl -s http://localhost:3000)"
+    ]
+  }
+}

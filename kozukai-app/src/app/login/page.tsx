@@ -1,7 +1,8 @@
 'use client';
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock } from 'lucide-react';
+import { isAuthenticated, getStoredPin, login } from '@/lib/auth';
 
 function LoginContent() {
   const router = useRouter();
@@ -10,31 +11,25 @@ function LoginContent() {
 
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  useEffect(() => {
+    if (isAuthenticated()) {
+      router.replace(next);
+    }
+  }, [next, router]);
+
+  function handleLogin() {
     if (!pin) return;
-    setLoading(true);
-    setError('');
-
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin }),
-    });
-
-    if (res.ok) {
+    const stored = getStoredPin();
+    if (pin === stored) {
+      login();
       router.push(next);
-      router.refresh();
     } else {
       setError('PINが違います');
       setPin('');
-      setLoading(false);
     }
   }
 
-  // テンキー風ボタン
   function pressKey(key: string) {
     if (key === 'del') {
       setPin((p) => p.slice(0, -1));
@@ -73,36 +68,34 @@ function LoginContent() {
         )}
 
         {/* Number pad */}
-        <form onSubmit={handleSubmit}>
-          <input type="hidden" value={pin} />
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            {['1','2','3','4','5','6','7','8','9','','0','del'].map((key) => (
-              <button
-                key={key}
-                type={key === '' ? 'button' : 'button'}
-                onClick={() => key !== '' && pressKey(key)}
-                disabled={key === ''}
-                className={`h-14 rounded-xl text-lg font-semibold transition-colors ${
-                  key === ''
-                    ? ''
-                    : key === 'del'
-                    ? 'bg-slate-100 text-slate-500 active:bg-slate-200'
-                    : 'bg-slate-100 text-slate-800 active:bg-slate-200'
-                }`}
-              >
-                {key === 'del' ? '⌫' : key}
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-3 gap-2 mt-4">
+          {['1','2','3','4','5','6','7','8','9','','0','del'].map((key) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => key !== '' && pressKey(key)}
+              disabled={key === ''}
+              className={`h-14 rounded-xl text-lg font-semibold transition-colors ${
+                key === ''
+                  ? ''
+                  : key === 'del'
+                  ? 'bg-slate-100 text-slate-500 active:bg-slate-200'
+                  : 'bg-slate-100 text-slate-800 active:bg-slate-200'
+              }`}
+            >
+              {key === 'del' ? '⌫' : key}
+            </button>
+          ))}
+        </div>
 
-          <button
-            type="submit"
-            disabled={pin.length === 0 || loading}
-            className="btn-primary w-full mt-4 text-base"
-          >
-            {loading ? '確認中...' : 'ログイン'}
-          </button>
-        </form>
+        <button
+          type="button"
+          disabled={pin.length === 0}
+          onClick={handleLogin}
+          className="btn-primary w-full mt-4 text-base"
+        >
+          ログイン
+        </button>
       </div>
     </div>
   );

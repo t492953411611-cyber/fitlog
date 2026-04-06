@@ -7,6 +7,7 @@ import WeeklyChart from '@/components/analytics/WeeklyChart';
 import type { Expense, Category } from '@/lib/types';
 import { getCategorySummaries, getMerchantRanking, getWeeklyData, formatMonth, formatCurrency } from '@/lib/utils';
 import { generateInsights } from '@/lib/insights';
+import { getExpenses, getCategories, getBudget } from '@/lib/client-storage';
 
 export default function AnalyticsPage() {
   const now = new Date();
@@ -20,13 +21,13 @@ export default function AnalyticsPage() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch(`/api/expenses?year=${year}&month=${month}`).then((r) => r.json()),
-      fetch('/api/categories').then((r) => r.json()),
-      fetch('/api/budget').then((r) => r.json()),
+      getExpenses({ year, month }),
+      getCategories(),
+      getBudget(),
     ]).then(([e, c, b]) => {
       setExpenses(e);
       setCategories(c);
-      setBudget(b.budget);
+      setBudget(b);
       setLoading(false);
     });
   }, [year, month]);

@@ -3,6 +3,15 @@ import { useEffect, useState } from 'react';
 import { Plus, Trash2, Check, Download } from 'lucide-react';
 import type { Category } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
+import {
+  getBudget,
+  setBudget,
+  getCategories,
+  createCategory,
+  deleteCategory,
+  seedData,
+  exportCSV,
+} from '@/lib/client-storage';
 
 const PRESET_COLORS = [
   '#ef4444','#f97316','#f59e0b','#84cc16',
@@ -11,21 +20,21 @@ const PRESET_COLORS = [
 ];
 
 export default function SettingsPage() {
-  const [budget, setBudgetState]   = useState(0);
+  const [budget, setBudgetState]      = useState(0);
   const [budgetInput, setBudgetInput] = useState('');
-  const [saved, setSaved]          = useState(false);
+  const [saved, setSaved]             = useState(false);
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCatName, setNewCatName] = useState('');
+  const [newCatName, setNewCatName]  = useState('');
   const [newCatColor, setNewCatColor] = useState('#6366f1');
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/budget').then(r => r.json()),
-      fetch('/api/categories').then(r => r.json()),
+      getBudget(),
+      getCategories(),
     ]).then(([b, c]) => {
-      setBudgetState(b.budget);
-      setBudgetInput(b.budget.toString());
+      setBudgetState(b);
+      setBudgetInput(b.toString());
       setCategories(c);
     });
   }, []);
@@ -33,16 +42,7 @@ export default function SettingsPage() {
   async function saveBudget() {
     const v = Number(budgetInput);
     if (isNaN(v) || v < 0) return;
-    const res = await fetch('/api/budget', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ budget: v }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      alert('保存に失敗しました: ' + (err.error ?? res.status));
-      return;
-    }
+    await setBudget(v);
     setBudgetState(v);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -50,25 +50,28 @@ export default function SettingsPage() {
 
   async function addCategory() {
     if (!newCatName.trim()) return;
-    const res = await fetch('/api/categories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newCatName.trim(), color: newCatColor }),
-    });
-    const cat = await res.json();
+    const cat = await createCategory(newCatName.trim(), newCatColor);
     setCategories(c => [...c, cat]);
     setNewCatName('');
   }
 
-  async function deleteCategory(id: string) {
+  async function handleDeleteCategory(id: string) {
     if (!confirm('このカテゴリを削除しますか？（デフォルトカテゴリは削除できません）')) return;
-    const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
-    if (res.ok) setCategories(c => c.filter(x => x.id !== id));
-    else alert('デフォルトカテゴリは削除できません');
+    const ok = await deleteCategory(id);
+    if (ok) {
+      setCategories(c => c.filter(x => x.id !== id));
+    } else {
+      alert('デフォルトカテゴリは削除できません');
+    }
   }
 
-  function exportCSV() {
-    window.open('/api/export', '_blank');
+  async function handleExportCSV() {
+    await exportCSV();
+  }
+
+  async function handleSeed() {
+    const count = await seedData();
+    alert(`${count}件のダミーデータを追加しました`);
   }
 
   return (
@@ -131,7 +134,7 @@ export default function SettingsPage() {
                 <span className="flex-1 text-sm text-slate-700">{cat.name}</span>
                 {!cat.isDefault && (
                   <button
-                    onClick={() => deleteCategory(cat.id)}
+                    onClick={() => handleDeleteCategory(cat.id)}
                     className="p-1.5 text-slate-300 hover:text-red-400 transition-colors"
                   >
                     <Trash2 size={14} />
@@ -184,23 +187,19 @@ export default function SettingsPage() {
           <p className="font-semibold text-slate-800 mb-1">データエクスポート</p>
           <p className="text-xs text-slate-400 mb-3">全支出データをCSV形式でダウンロードします</p>
           <button
-            onClick={exportCSV}
+            onClick={handleExportCSV}
             className="flex items-center gap-2 w-full justify-center py-3 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-colors"
           >
             <Download size={16} /> CSVをダウンロード
           </button>
         </div>
 
-        {/* Seed data (dev) */}
+        {/* Seed data */}
         <div className="card p-4 border-dashed">
           <p className="font-semibold text-slate-500 text-sm mb-1">ダミーデータ</p>
           <p className="text-xs text-slate-400 mb-3">動作確認用のサンプルデータを追加します</p>
           <button
-            onClick={async () => {
-              const res = await fetch('/api/seed', { method: 'POST' });
-              const { message } = await res.json();
-              alert(message);
-            }}
+            onClick={handleSeed}
             className="text-sm text-slate-500 border border-slate-200 rounded-xl px-4 py-2 w-full hover:bg-slate-50 transition-colors"
           >
             ダミーデータを追加

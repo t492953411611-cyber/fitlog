@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add heartrate.html)",
+      "Bash(git commit -m \"Fix responsive design for smartphones\")",
+      "Bash(git push)",
+      "Bash(npm install)",
+      "Bash(npm run build)"
+    ]
+  }
+}

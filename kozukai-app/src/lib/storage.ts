@@ -1,40 +1,36 @@
-import { supabase } from './supabase';
-import type { Expense, Category } from './types';
+import fs from 'fs';
+import path from 'path';
+import { v4 as uuid } from 'uuid';
+import type { Expense, Category, DB } from './types';
+
+// ── ファイルパス ──────────────────────────────────────────
+const DB_PATH = path.join(process.cwd(), 'data', 'db.json');
+
+// ── 読み書きヘルパー ──────────────────────────────────────
+function readDB(): DB {
+  const raw = fs.readFileSync(DB_PATH, 'utf-8');
+  return JSON.parse(raw) as DB;
+}
+
+function writeDB(db: DB): void {
+  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+}
 
 // ── Expenses ──────────────────────────────────────────────
-
-function toExpense(row: Record<string, unknown>): Expense {
-  return {
-    id:            row.id as string,
-    date:          row.date as string,
-    amount:        row.amount as number,
-    merchant:      row.merchant as string,
-    category:      row.category as string,
-    memo:          row.memo as string,
-    paymentMethod: row.payment_method as Expense['paymentMethod'],
-    sourceType:    row.source_type as Expense['sourceType'],
-    imageRef:      row.image_ref as string | undefined,
-    createdAt:     row.created_at as string,
-    updatedAt:     row.updated_at as string,
-  };
-}
 
 export async function getExpenses(filters?: {
   year?: number;
   month?: number;
   category?: string;
 }): Promise<Expense[]> {
-  let query = supabase.from('expenses').select('*').order('date', { ascending: false });
+  const db = readDB();
+  let list = [...db.expenses].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 
   if (filters?.category) {
-    query = query.eq('category', filters.category);
+    list = list.filter((e) => e.category === filters.category);
   }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  let list = (data ?? []).map(toExpense);
-
   if (filters?.year !== undefined || filters?.month !== undefined) {
     list = list.filter((e) => {
       const d = new Date(e.date);
@@ -48,107 +44,86 @@ export async function getExpenses(filters?: {
 }
 
 export async function getExpense(id: string): Promise<Expense | null> {
-  const { data, error } = await supabase.from('expenses').select('*').eq('id', id).single();
-  if (error || !data) return null;
-  return toExpense(data);
+  const db = readDB();
+  return db.expenses.find((e) => e.id === id) ?? null;
 }
 
 export async function createExpense(
   data: Omit<Expense, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Expense> {
-  const { v4: uuid } = await import('uuid');
+  const db = readDB();
   const now = new Date().toISOString();
-  const row = {
-    id:             uuid(),
-    date:           data.date,
-    amount:         data.amount,
-    merchant:       data.merchant,
-    category:       data.category,
-    memo:           data.memo,
-    payment_method: data.paymentMethod,
-    source_type:    data.sourceType,
-    image_ref:      data.imageRef ?? null,
-    created_at:     now,
-    updated_at:     now,
-  };
-  const { data: inserted, error } = await supabase.from('expenses').insert(row).select().single();
-  if (error) throw error;
-  return toExpense(inserted);
+  const expense: Expense = { ...data, id: uuid(), createdAt: now, updatedAt: now };
+  db.expenses.push(expense);
+  writeDB(db);
+  return expense;
 }
 
 export async function updateExpense(
   id: string,
   data: Partial<Omit<Expense, 'id' | 'createdAt'>>
 ): Promise<Expense | null> {
-  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
-  if (data.date          !== undefined) updates.date           = data.date;
-  if (data.amount        !== undefined) updates.amount         = data.amount;
-  if (data.merchant      !== undefined) updates.merchant       = data.merchant;
-  if (data.category      !== undefined) updates.category       = data.category;
-  if (data.memo          !== undefined) updates.memo           = data.memo;
-  if (data.paymentMethod !== undefined) updates.payment_method = data.paymentMethod;
-  if (data.sourceType    !== undefined) updates.source_type    = data.sourceType;
-  if (data.imageRef      !== undefined) updates.image_ref      = data.imageRef;
-
-  const { data: updated, error } = await supabase.from('expenses').update(updates).eq('id', id).select().single();
-  if (error || !updated) return null;
-  return toExpense(updated);
+  const db = readDB();
+  const idx = db.expenses.findIndex((e) => e.id === id);
+  if (idx === -1) return null;
+  db.expenses[idx] = { ...db.expenses[idx], ...data, updatedAt: new Date().toISOString() };
+  writeDB(db);
+  return db.expenses[idx];
 }
 
 export async function deleteExpense(id: string): Promise<boolean> {
-  const { error } = await supabase.from('expenses').delete().eq('id', id);
-  return !error;
+  const db = readDB();
+  const before = db.expenses.length;
+  db.expenses = db.expenses.filter((e) => e.id !== id);
+  if (db.expenses.length === before) return false;
+  writeDB(db);
+  return true;
 }
 
 // ── Budget ────────────────────────────────────────────────
 
 export async function getBudget(): Promise<number> {
-  const { data } = await supabase.from('settings').select('value').eq('key', 'budget').single();
-  return data ? Number(data.value) : 30000;
+  return readDB().budget;
 }
 
 export async function setBudget(amount: number): Promise<void> {
-  const { error } = await supabase.from('settings').upsert({ key: 'budget', value: String(amount) });
-  if (error) throw error;
+  const db = readDB();
+  db.budget = amount;
+  writeDB(db);
 }
 
 // ── Categories ────────────────────────────────────────────
 
-function toCategory(row: Record<string, unknown>): Category {
-  return {
-    id:        row.id as string,
-    name:      row.name as string,
-    color:     row.color as string,
-    isDefault: row.is_default as boolean,
-  };
-}
-
 export async function getCategories(): Promise<Category[]> {
-  const { data, error } = await supabase.from('categories').select('*').order('name');
-  if (error) throw error;
-  return (data ?? []).map(toCategory);
+  const db = readDB();
+  return [...db.categories].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 }
 
 export async function createCategory(name: string, color: string): Promise<Category> {
-  const { v4: uuid } = await import('uuid');
-  const row = { id: uuid(), name, color, is_default: false };
-  const { data, error } = await supabase.from('categories').insert(row).select().single();
-  if (error) throw error;
-  return toCategory(data);
+  const db = readDB();
+  const category: Category = { id: uuid(), name, color, isDefault: false };
+  db.categories.push(category);
+  writeDB(db);
+  return category;
 }
 
-export async function updateCategory(id: string, data: Partial<Category>): Promise<Category | null> {
-  const updates: Record<string, unknown> = {};
-  if (data.name  !== undefined) updates.name      = data.name;
-  if (data.color !== undefined) updates.color     = data.color;
-  const { data: updated, error } = await supabase.from('categories').update(updates).eq('id', id).select().single();
-  if (error || !updated) return null;
-  return toCategory(updated);
+export async function updateCategory(
+  id: string,
+  data: Partial<Category>
+): Promise<Category | null> {
+  const db = readDB();
+  const idx = db.categories.findIndex((c) => c.id === id);
+  if (idx === -1) return null;
+  db.categories[idx] = { ...db.categories[idx], ...data };
+  writeDB(db);
+  return db.categories[idx];
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-  const { data: cat } = await supabase.from('categories').select('is_default').eq('id', id).single();
-  if (!cat || cat.is_default) return false;
-  const { error } = await supabase.from('categories').delete().eq('id', id);
-  return !error;
+  const db = readDB();
+  const cat = db.categories.find((c) => c.id === id);
+  if (!cat || cat.isDefault) return false;
+  db.categories = db.categories.filter((c) => c.id !== id);
+  writeDB(db);
+  return true;
 }

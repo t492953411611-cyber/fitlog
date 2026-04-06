@@ -8,6 +8,8 @@ import InsightCard from '@/components/home/InsightCard';
 import type { Expense, Category } from '@/lib/types';
 import { generateInsights } from '@/lib/insights';
 import { currentYM } from '@/lib/utils';
+import { getBudget, getExpenses, getCategories, seedData } from '@/lib/client-storage';
+import { isAuthenticated, logout } from '@/lib/auth';
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,17 +21,22 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isAuthenticated()) {
+      router.replace('/login');
+      return;
+    }
+
     Promise.all([
-      fetch('/api/budget').then((r) => r.json()),
-      fetch(`/api/expenses?year=${year}&month=${month}`).then((r) => r.json()),
-      fetch('/api/categories').then((r) => r.json()),
+      getBudget(),
+      getExpenses({ year, month }),
+      getCategories(),
     ]).then(([b, e, c]) => {
-      setBudget(b.budget);
+      setBudget(b);
       setExpenses(e);
       setCategories(c);
       setLoading(false);
     });
-  }, [year, month]);
+  }, [year, month, router]);
 
   if (loading) {
     return (
@@ -52,8 +59,8 @@ export default function HomePage() {
             <p className="text-slate-400 text-sm mt-0.5">{year}年{month}月</p>
           </div>
           <button
-            onClick={async () => {
-              await fetch('/api/auth', { method: 'DELETE' });
+            onClick={() => {
+              logout();
               router.push('/login');
             }}
             className="text-slate-400 p-1 hover:text-slate-200 transition-colors"
@@ -106,7 +113,7 @@ export default function HomePage() {
           <button
             className="text-sm text-slate-500 border border-slate-200 rounded-xl px-4 py-2"
             onClick={async () => {
-              await fetch('/api/seed', { method: 'POST' });
+              await seedData();
               window.location.reload();
             }}
           >

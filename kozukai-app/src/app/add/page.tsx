@@ -7,6 +7,7 @@ import ExpenseForm from '@/components/expenses/ExpenseForm';
 import ImageUpload from '@/components/expenses/ImageUpload';
 import ImageAnalysisConfirm from '@/components/expenses/ImageAnalysisConfirm';
 import type { Category, AnalysisResult } from '@/lib/types';
+import { getCategories } from '@/lib/client-storage';
 
 function AddPageContent() {
   const searchParams = useSearchParams();
@@ -17,7 +18,7 @@ function AddPageContent() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
   useEffect(() => {
-    fetch('/api/categories').then((r) => r.json()).then(setCategories);
+    getCategories().then(setCategories);
   }, []);
 
   return (
