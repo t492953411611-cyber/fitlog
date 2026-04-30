@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>HabitFlow</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#6366f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HabitFlow">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --sub: #64748b;
+      --border: #e2e8f0;
+      --primary: #6366f1;
+      --primary-light: #eef2ff;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --warning: #f59e0b;
+      --radius: 16px;
+      --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --text: #f1f5f9;
+        --sub: #94a3b8;
+        --border: #334155;
+        --primary-light: #312e81;
+        --success-light: #064e3b;
+        --shadow: 0 2px 12px rgba(0,0,0,0.4);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 20px 20px 24px;
+      padding-top: calc(20px + env(safe-area-inset-top));
+    }
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    header p { font-size: 13px; opacity: 0.85; margin-top: 2px; }
+    .date-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    main { padding: 16px; max-width: 480px; margin: 0 auto; }
+
+    /* セクション */
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sub);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 20px 0 10px;
+    }
+
+    /* 習慣カード */
+    .habit-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      gap: 14px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      border: 2px solid transparent;
+      user-select: none;
+    }
+    .habit-card:active { transform: scale(0.97); }
+    .habit-card.done { border-color: var(--success); background: var(--success-light); }
+    .check-circle {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      border: 2.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      background: var(--bg);
+    }
+    .habit-card.done .check-circle {
+      background: var(--success);
+      border-color: var(--success);
+    }
+    .habit-info { flex: 1; }
+    .habit-name { font-size: 16px; font-weight: 600; }
+    .habit-streak { font-size: 12px; color: var(--sub); margin-top: 2px; }
+    .habit-card.done .habit-streak { color: var(--success); }
+
+    /* 睡眠記録 */
+    .sleep-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .sleep-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .sleep-input-group {
+      flex: 1;
+    }
+    .sleep-input-group label {
+      font-size: 12px;
+      color: var(--sub);
+      display: block;
+      margin-bottom: 6px;
+    }
+    .sleep-input-group input[type="time"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 600;
+      text-align: center;
+    }
+    .sleep-result {
+      background: var(--primary-light);
+      border-radius: 10px;
+      padding: 10px 16px;
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sleep-result .duration {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .sleep-result .label {
+      font-size: 13px;
+      color: var(--sub);
+    }
+
+    /* 今週カレンダー */
+    .week-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 12px;
+    }
+    .day-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .day-label { font-size: 11px; color: var(--sub); }
+    .day-dot {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--sub);
+    }
+    .day-dot.today { border: 2px solid var(--primary); color: var(--primary); }
+    .day-dot.full { background: var(--success); color: white; }
+    .day-dot.partial { background: var(--warning); color: white; }
+    .week-rate {
+      text-align: center;
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--sub);
+    }
+    .week-rate span { font-weight: 700; color: var(--primary); }
+
+    /* 励ましメッセージ */
+    .message-card {
+      background: linear-gradient(135deg, var(--primary), #8b5cf6);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      color: white;
+      margin-bottom: 10px;
+      display: none;
+    }
+    .message-card.show { display: block; }
+    .message-card .emoji { font-size: 28px; }
+    .message-card p { margin-top: 6px; font-size: 15px; line-height: 1.5; }
+
+    /* 統計 */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 12px; color: var(--sub); margin-top: 2px; }
+
+    /* 習慣追加ボタン */
+    .add-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius);
+      border: 2px dashed var(--border);
+      background: transparent;
+      color: var(--sub);
+      font-size: 15px;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: all 0.2s;
+    }
+    .add-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+    /* モーダル */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--card);
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 24px 20px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      width: 100%;
+      max-width: 480px;
+      transform: translateY(100%);
+      transition: transform 0.25s ease;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+    .modal input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      margin-bottom: 12px;
+    }
+    .emoji-picker {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .emoji-btn {
+      font-size: 24px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background: var(--bg);
+      cursor: pointer;
+    }
+    .emoji-btn.selected { border-color: var(--primary); background: var(--primary-light); }
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-cancel {
+      flex: 1; padding: 14px;
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .btn-save {
+      flex: 2; padding: 14px;
+      border-radius: 10px;
+      border: none;
+      background: var(--primary);
+      color: white;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* 完了アニメーション */
+    @keyframes pop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+    .habit-card.pop { animation: pop 0.3s ease; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌊 HabitFlow</h1>
+  <p>習慣を積み上げて、理想の自分へ</p>
+  <span class="date-badge" id="dateLabel"></span>
+</header>
+
+<main>
+
+  <!-- 励ましメッセージ -->
+  <div class="message-card" id="messageCard">
+    <div class="emoji" id="messageEmoji">🎉</div>
+    <p id="messageText"></p>
+  </div>
+
+  <!-- 今日の習慣 -->
+  <div class="section-title">今日の習慣</div>
+  <div id="habitList"></div>
+  <button class="add-btn" onclick="openModal()">＋ 習慣を追加</button>
+
+  <!-- 睡眠記録 -->
+  <div class="section-title">睡眠記録</div>
+  <div class="sleep-card">
+    <div class="sleep-row">
+      <div class="sleep-input-group">
+        <label>🌙 就寝時刻</label>
+        <input type="time" id="bedtime" onchange="calcSleep()">
+      </div>
+      <div class="sleep-input-group">
+        <label>☀️ 起床時刻</label>
+        <input type="time" id="waketime" onchange="calcSleep()">
+      </div>
+    </div>
+    <div class="sleep-result" id="sleepResult" style="display:none">
+      <div>
+        <div class="duration" id="sleepDuration">-</div>
+        <div class="label">睡眠時間</div>
+      </div>
+      <div id="sleepComment" style="font-size:13px; color:var(--sub)"></div>
+    </div>
+  </div>
+
+  <!-- 今週の達成 -->
+  <div class="section-title">今週の達成</div>
+  <div class="week-card">
+    <div class="week-grid" id="weekGrid"></div>
+    <div class="week-rate">今週の達成率：<span id="weekRateVal">-</span></div>
+  </div>
+
+  <!-- 統計 -->
+  <div class="section-title">統計</div>
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">総チェックイン数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="statMaxStreak">0</div>
+      <div class="stat-label">最長ストリーク</div>
+    </div>
+  </div>
+
+</main>
+
+<!-- 習慣追加モーダル -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <h3>習慣を追加</h3>
+    <div class="emoji-picker" id="emojiPicker"></div>
+    <input type="text" id="habitNameInput" placeholder="習慣名（例：水を2L飲む）" maxlength="30">
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-save" onclick="saveHabit()">追加する</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'habitflow_data_v1';
+const EMOJIS = ['💪','🏃','📚','💧','🧘','🥗','😴','✍️','🎯','🌿','🚴','🧠','❤️','🎵','🌅'];
+const MESSAGES = [
+  { emoji:'🎉', text:'全部クリア！今日も最高でした。この調子で続けましょう！' },
+  { emoji:'🔥', text:'完璧な一日！ストリークが伸びています。明日も頑張れ！' },
+  { emoji:'✨', text:'習慣マスター！コツコツ積み上げる力があなたを変えます。' },
+  { emoji:'🏆', text:'全達成おめでとう！毎日の積み重ねが大きな変化を生みます！' },
+];
+const SLEEP_COMMENTS = {
+  short: '⚠️ 睡眠が少し短め。早めに休みましょう',
+  good: '✅ 理想的な睡眠時間です！',
+  long: '😴 たっぷり寝ましたね。回復できそう！',
+};
+
+let data = loadData();
+let selectedEmoji = EMOJIS[0];
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    habits: [
+      { id: 1, name: '水を2L飲む', emoji: '💧', streak: 0, history: {} },
+      { id: 2, name: '30分運動する', emoji: '🏃', streak: 0, history: {} },
+      { id: 3, name: '読書10分', emoji: '📚', streak: 0, history: {} },
+    ],
+    sleep: {},
+    nextId: 4,
+  };
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function todayLabel() {
+  const d = new Date();
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）`;
+}
+
+function render() {
+  document.getElementById('dateLabel').textContent = todayLabel();
+  renderHabits();
+  renderWeek();
+  renderStats();
+  renderSleep();
+  renderMessage();
+}
+
+function renderHabits() {
+  const t = today();
+  const list = document.getElementById('habitList');
+  list.innerHTML = '';
+  data.habits.forEach(h => {
+    const done = !!h.history[t];
+    const div = document.createElement('div');
+    div.className = 'habit-card' + (done ? ' done' : '');
+    div.dataset.id = h.id;
+    div.onclick = () => toggleHabit(h.id);
+    div.innerHTML = `
+      <div class="check-circle">${done ? '✓' : h.emoji}</div>
+      <div class="habit-info">
+        <div class="habit-name">${h.name}</div>
+        <div class="habit-streak">${done ? '✅ 今日完了！' : ''}　🔥 ${h.streak}日連続</div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function toggleHabit(id) {
+  const t = today();
+  const h = data.habits.find(x => x.id === id);
+  if (!h) return;
+  if (h.history[t]) {
+    delete h.history[t];
+    recalcStreak(h);
+  } else {
+    h.history[t] = true;
+    recalcStreak(h);
+    // ポップアニメ
+    const card = document.querySelector(`.habit-card[data-id="${id}"]`);
+    if (card) { card.classList.add('pop'); setTimeout(() => card.classList.remove('pop'), 300); }
+  }
+  saveData();
+  render();
+}
+
+function recalcStreak(h) {
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = d.toISOString().slice(0, 10);
+    if (h.history[key]) { streak++; d.setDate(d.getDate() - 1); }
+    else break;
+  }
+  h.streak = streak;
+}
+
+function renderMessage() {
+  const t = today();
+  const total = data.habits.length;
+  const done = data.habits.filter(h => h.history[t]).length;
+  const card = document.getElementById('messageCard');
+  if (total > 0 && done === total) {
+    const msg = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+    document.getElementById('messageEmoji').textContent = msg.emoji;
+    document.getElementById('messageText').textContent = msg.text;
+    card.classList.add('show');
+  } else {
+    card.classList.remove('show');
+  }
+}
+
+function renderWeek() {
+  const grid = document.getElementById('weekGrid');
+  grid.innerHTML = '';
+  const days = ['日','月','火','水','木','金','土'];
+  const now = new Date();
+  const dow = now.getDay();
+  let totalDays = 0, achievedDays = 0;
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const isToday = i === 0;
+    const total = data.habits.length;
+    const done = data.habits.filter(h => h.history[key]).length;
+    let dotClass = 'day-dot';
+    if (isToday) dotClass += ' today';
+    if (total > 0 && done === total) { dotClass = 'day-dot full'; achievedDays++; }
+    else if (done > 0) { dotClass = 'day-dot partial'; }
+    if (total > 0) totalDays++;
+    const cell = document.createElement('div');
+    cell.className = 'day-cell';
+    cell.innerHTML = `<div class="day-label">${days[d.getDay()]}</div><div class="${dotClass}">${d.getDate()}</div>`;
+    grid.appendChild(cell);
+  }
+  const rate = totalDays > 0 ? Math.round((achievedDays / totalDays) * 100) : 0;
+  document.getElementById('weekRateVal').textContent = rate + '%';
+}
+
+function renderStats() {
+  let total = 0;
+  let maxStreak = 0;
+  data.habits.forEach(h => {
+    total += Object.keys(h.history).length;
+    if (h.streak > maxStreak) maxStreak = h.streak;
+  });
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statMaxStreak').textContent = maxStreak;
+}
+
+function renderSleep() {
+  const t = today();
+  const s = data.sleep[t] || {};
+  if (s.bed) document.getElementById('bedtime').value = s.bed;
+  if (s.wake) document.getElementById('waketime').value = s.wake;
+  if (s.bed && s.wake) calcSleep();
+}
+
+function calcSleep() {
+  const bed = document.getElementById('bedtime').value;
+  const wake = document.getElementById('waketime').value;
+  if (!bed || !wake) return;
+  const t = today();
+  data.sleep[t] = { bed, wake };
+  saveData();
+  const [bh, bm] = bed.split(':').map(Number);
+  const [wh, wm] = wake.split(':').map(Number);
+  let mins = (wh * 60 + wm) - (bh * 60 + bm);
+  if (mins < 0) mins += 24 * 60;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  document.getElementById('sleepDuration').textContent = `${h}時間${m}分`;
+  let comment = '';
+  if (h < 6) comment = SLEEP_COMMENTS.short;
+  else if (h <= 9) comment = SLEEP_COMMENTS.good;
+  else comment = SLEEP_COMMENTS.long;
+  document.getElementById('sleepComment').textContent = comment;
+  document.getElementById('sleepResult').style.display = 'flex';
+}
+
+// モーダル
+function openModal() {
+  selectedEmoji = EMOJIS[0];
+  document.getElementById('habitNameInput').value = '';
+  renderEmojiPicker();
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('habitNameInput').focus(), 300);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function closeModalOnBg(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+function renderEmojiPicker() {
+  const picker = document.getElementById('emojiPicker');
+  picker.innerHTML = '';
+  EMOJIS.forEach(em => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-btn' + (em === selectedEmoji ? ' selected' : '');
+    btn.textContent = em;
+    btn.onclick = () => { selectedEmoji = em; renderEmojiPicker(); };
+    picker.appendChild(btn);
+  });
+}
+
+function saveHabit() {
+  const name = document.getElementById('habitNameInput').value.trim();
+  if (!name) { document.getElementById('habitNameInput').focus(); return; }
+  data.habits.push({ id: data.nextId++, name, emoji: selectedEmoji, streak: 0, history: {} });
+  saveData();
+  closeModal();
+  render();
+}
+
+// Service Worker 登録
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').catch(() => {});
+}
+
+render();
+</script>
+</body>
+</html>
